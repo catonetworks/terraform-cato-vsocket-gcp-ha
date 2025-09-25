@@ -1,8 +1,16 @@
 # Cato Networks GCP vSocket HA Terraform Module
 
-The Cato vSocket modules deploys vSocket HA instances to connect to the Cato Cloud.
+Terraform module which creates the GCP resources, VPC, Subnets, network interfaces, firewall rules, route-tables, load balancers, etc.  Then creates and configures a Cato Socket Site and brings up two vSockets in HA configuration. 
 
-# Pre-reqs
+## NOTE
+- The current API that the Cato provider is calling requires sequential execution. 
+Cato recommends setting the value to 1. Example call: terraform apply -parallelism=1.
+- This module will look up the Cato Site Location information based on the Location of GCP specified.  If you would like to override this behavior, please leverage the below for help finding the correct values.
+- For help with finding exact sytax to match site location for city, state_name, country_name and timezone, please refer to the [cato_siteLocation data source](https://registry.terraform.io/providers/catonetworks/cato/latest/docs/data-sources/siteLocation).
+- For help with finding a license id to assign, please refer to the [cato_licensingInfo data source](https://registry.terraform.io/providers/catonetworks/cato/latest/docs/data-sources/licensingInfo).
+- For Translated Ranges, "Enable Static Range Translation" but be enabled for more information please refer to [Configuring System Settings for the Account](https://support.catonetworks.com/hc/en-us/articles/4413280536849-Configuring-System-Settings-for-the-Account)
+
+## Pre-reqs
 - Install the [Google Cloud Platform CLI](https://cloud.google.com/sdk/docs/install)
 `$ /google-cloud-sdk/install.sh`
 - Run the following to configure the GCP CLI
@@ -11,6 +19,19 @@ The Cato vSocket modules deploys vSocket HA instances to connect to the Cato Clo
 ## Usage
 
 ```hcl
+variable "project" {
+  default = "Your-Google-Project-ID-Here"
+}
+variable "region" {
+  default = "Your-Preferred-Google-Region-Name-Here"
+}
+variable "baseurl" {}
+variable "token" {}
+variable "account_id" {}
+variable "name_prefix" {
+  default = "A-String-to-Prefix-to-new-resources"
+}
+
 provider "google" {
   project = var.project
   region  = var.region
@@ -25,48 +46,66 @@ provider "cato" {
 # GCP/Cato vsocket HA Module
 module "vsocket-gcp-ha-vnet" {
   source                  = "catonetworks/vsocket-gcp-ha/cato"
-  token                   = var.cato_token
-  account_id              = var.account_id
-  site_name               = "Your-Cato-site-name-here"
-  site_description        = "Your Cato site desc here"
-  site_location            = {
-		city         = "Los Angeles"
-		country_code = "US"
-		state_code   = "US-CA" ## Optional - for countries with states
-		timezone     = "America/Los_Angeles"
-	}
-  primary_zone = "me-west1-a"
-  secondary_zone = "me-west1-b"
+  token            = var.token
+  account_id       = var.account_id
+  site_name        = "Your-Cato-site-name-here"
+  site_description = "Your Cato site desc here"
+  primary_zone     = "Preferred-Zone-ID-Here (Primary)" #Example us-west1-a
+  secondary_zone   = "Preferred-Zone-ID-Here (Secondary)" #Example us-west1-b
+  region           = var.region
 
   vpc_mgmt_name = "${var.name_prefix}-mgmt-vpc"
-  vpc_wan_name = "${var.name_prefix}-wan-vpc"
-  vpc_lan_name = "${var.name_prefix}-lan-vpc"
-  
+  vpc_wan_name  = "${var.name_prefix}-wan-vpc"
+  vpc_lan_name  = "${var.name_prefix}-lan-vpc"
+
   subnet_mgmt_name = "${var.name_prefix}-mgmt-subnet"
-  subnet_wan_name = "${var.name_prefix}-wan-subnet"
-  subnet_lan_name = "${var.name_prefix}-lan-subnet"
+  subnet_wan_name  = "${var.name_prefix}-wan-subnet"
+  subnet_lan_name  = "${var.name_prefix}-lan-subnet"
 
   subnet_mgmt_cidr = "10.3.1.0/24"
-  subnet_wan_cidr = "10.3.2.0/24"
+  subnet_wan_cidr  = "10.3.2.0/24"
   subnet_lan_cidr  = "10.3.3.0/24"
-   
+
   ip_mgmt_name = "${var.name_prefix}-mgmt-public-ip"
-  ip_wan_name =  "${var.name_prefix}-wan-public-ip"
+  ip_wan_name  = "${var.name_prefix}-wan-public-ip"
 
-  mgmt_network_ip_primary = "10.3.1.4"
-  mgmt_network_ip_secondary = "10.3.1.4"
+  mgmt_network_ip_primary   = "10.3.1.4"
+  mgmt_network_ip_secondary = "10.3.1.5"
 
-  wan_network_ip_primary = "10.3.2.4"
+  wan_network_ip_primary   = "10.3.2.4"
   wan_network_ip_secondary = "10.3.2.5"
 
-  lan_network_ip_primary          = "10.3.3.4"
-  lan_network_ip_secondary        = "10.3.3.5"
-  floating_ip             					= "10.3.3.6"  
-   
-  vm_name = "${var.name_prefix}-vsocket"   
-}
+  lan_network_ip_primary   = "10.3.3.4"
+  lan_network_ip_secondary = "10.3.3.5"
+  floating_ip              = "10.3.3.6"
 
+  vm_name = "${var.name_prefix}-vsocket"
+
+  tags   = []
+  labels = {}
 ```
+## Site Location Reference
+
+For more information on site_location syntax, use the [Cato CLI](https://github.com/catonetworks/cato-cli) to lookup values.
+
+```bash
+$ pip3 install catocli
+$ export CATO_TOKEN="your-api-token-here"
+$ export CATO_ACCOUNT_ID="your-account-id"
+$ catocli query siteLocation -h
+$ catocli query siteLocation '{"filters":[{"search": "San Diego","field":"city","operation":"exact"}]}' -p
+```
+
+## Authors
+
+Module is maintained by [Cato Networks](https://github.com/catonetworks) with help from [these awesome contributors](https://github.com/catonetworks/terraform-cato-vsocket-gcp-ha/graphs/contributors).
+
+## License
+
+Apache 2 Licensed. See [LICENSE](https://github.com/catonetworks/terraform-cato-vsocket-gcp-ha/tree/master/LICENSE) for full details.
+
+
+
 
 <!-- BEGIN_TF_DOCS -->
 ## Requirements

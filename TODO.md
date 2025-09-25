@@ -1,0 +1,4 @@
+ - [ ] Add Conditional for Existing Resources (VNet, Subnets, etc.)
+ - [ ] Add Standard Naming definitions, and Conditionals 
+ - [ ] Additional Updates to ReadMe.md
+ - [ ]  
