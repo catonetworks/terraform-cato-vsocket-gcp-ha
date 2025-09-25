@@ -1,0 +1,43 @@
+# This template file contains the curl command to configure the secondary GCP vSocket.
+# It makes a POST request with a GraphQL mutation payload.
+# The values are dynamically inserted by Terraform during the apply phase.
+
+response=$(curl -k -X POST \
+  -H "Accept: application/json" \
+  -H "Content-Type: application/json" \
+  -H "x-API-Key: ${api_token}" \
+  "${base_url}" \
+  --data '{
+    "query": "mutation siteAddSecondaryGcpVSocket($accountId: ID!, $addSecondaryGcpVSocketInput: AddSecondaryGcpVSocketInput!) { site(accountId: $accountId) { addSecondaryGcpVSocket(input: $addSecondaryGcpVSocketInput) { id } } }",
+    "variables": {
+      "accountId": "${account_id}",
+      "addSecondaryGcpVSocketInput": {
+        "gcpConfig": {
+          "floatingIp": "${floating_ip}",
+          "interfaceIp": "${interface_ip}"
+        },
+        "site": {
+          "by": "ID",
+          "input": "${site_id}"
+        }
+      }
+    },
+    "operationName": "siteAddSecondaryGcpVSocket"
+  }' )
+
+# Log the response for debugging (optional - can be commented out in production)
+echo "API Response: $response"
+
+# Check if the API call was successful
+if [ $? -ne 0 ]; then
+  echo "Error: API call failed"
+  exit 1
+fi
+
+# Check if response contains errors
+if echo "$response" | grep -q "error"; then
+  echo "Error: API returned error: $response"
+  exit 1
+fi
+
+echo "Secondary GCP vSocket configuration completed successfully"

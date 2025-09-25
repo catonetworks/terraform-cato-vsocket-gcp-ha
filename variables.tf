@@ -1,19 +1,37 @@
 
-# For AddSecondery API call
+# For AddSecondary API call
 variable "token" {
   description = "API token used to authenticate with the Cato Networks API."
+  type        = string
+  # Setting Sensitive to False cause I need the output of the API Call. 
+  # In a production setting this should be uncommented as this actually is a sensitive value 
+
+  // TODO: Remove testing setting
+  # sensitive   = true
+  validation {
+    condition     = can(regex("^[A-Za-z0-9+/]+=*$", var.token)) && length(var.token) >= 16
+    error_message = "API token must be a valid base64-encoded string with minimum length of 16 characters."
+  }
 }
 
 variable "account_id" {
   description = "Account ID used for the Cato Networks integration."
   type        = number
   default     = null
+  validation {
+    condition     = var.account_id == null || (var.account_id > 0 && var.account_id < 2147483648)
+    error_message = "Account ID must be a positive integer less than 2147483648."
+  }
 }
 
 variable "baseurl" {
   description = "Base URL for the Cato Networks API."
   type        = string
   default     = "https://api.catonetworks.com/api/v1/graphql2"
+  validation {
+    condition     = can(regex("^https?://[a-zA-Z0-9.-]+(/.*)?$", var.baseurl))
+    error_message = "Base URL must be a valid HTTP/HTTPS URL."
+  }
 }
 
 # Site values
@@ -28,12 +46,29 @@ variable "site_description" {
 }
 
 variable "site_location" {
+  description = "Site location information. If all fields are null, location will be automatically determined from the GCP region."
   type = object({
-    city         = string
-    country_code = string
-    state_code   = string
-    timezone     = string
+    city         = optional(string)
+    country_code = optional(string)
+    state_code   = optional(string)
+    timezone     = optional(string)
   })
+  default = {
+    city         = null
+    country_code = null
+    state_code   = null
+    timezone     = null
+  }
+  validation {
+    condition = (
+      # Either all fields are null (automatic lookup) or all required fields are provided
+      (var.site_location.city == null && var.site_location.country_code == null &&
+      var.site_location.state_code == null && var.site_location.timezone == null) ||
+      (var.site_location.city != null && var.site_location.country_code != null &&
+      var.site_location.timezone != null)
+    )
+    error_message = "Site location must either have all fields null (for automatic lookup) or provide at minimum city, country_code, and timezone."
+  }
 }
 
 variable "site_type" {
@@ -49,7 +84,6 @@ variable "site_type" {
 variable "region" {
   description = "GCP Region"
   type        = string
-  default     = "me-west1"
   validation {
     condition     = can(regex("^[a-z]+-[a-z]+[0-9]$", var.region))
     error_message = "Region must be in the format: region-location (e.g., us-central1)."
@@ -59,13 +93,11 @@ variable "region" {
 variable "primary_zone" {
   description = "GCP Zone of Primary vSocket"
   type        = string
-  default     = "me-west1-a"
 }
 
 variable "secondary_zone" {
   description = "GCP Zone of Secondary vSocket"
   type        = string
-  default     = "me-west1-b"
 }
 
 variable "vpc_mgmt_name" {
@@ -128,8 +160,28 @@ variable "boot_disk_size" {
   type        = number
   default     = 20
   validation {
-    condition     = var.boot_disk_size >= 10
-    error_message = "Boot disk size must be at least 10 GB."
+    condition     = var.boot_disk_size >= 10 && var.boot_disk_size <= 65536
+    error_message = "Boot disk size must be between 10 GB and 65536 GB."
+  }
+}
+
+variable "boot_disk_image" {
+  description = "Boot disk image for vSocket instances"
+  type        = string
+  default     = "projects/cato-vsocket-production/global/images/gcp-socket-image-v22-0-19207"
+  validation {
+    condition     = can(regex("^projects/[a-z][a-z0-9-]{4,28}[a-z0-9]/global/images/[a-z0-9-]+$", var.boot_disk_image))
+    error_message = "Boot disk image must be a valid GCP image path in format: projects/PROJECT/global/images/IMAGE_NAME."
+  }
+}
+
+variable "machine_type" {
+  description = "Machine type for vSocket instances"
+  type        = string
+  default     = "n2-standard-4"
+  validation {
+    condition     = can(regex("^[a-z][0-9]-[a-z]+-[0-9]+$", var.machine_type))
+    error_message = "Machine type must be in the format: family-series-size (e.g., n2-standard-4)."
   }
 }
 
@@ -146,6 +198,10 @@ variable "network_tier" {
   description = "Network tier for the public IP"
   type        = string
   default     = "STANDARD"
+  validation {
+    condition     = contains(["STANDARD", "PREMIUM"], var.network_tier)
+    error_message = "Network tier must be either 'STANDARD' or 'PREMIUM'."
+  }
 }
 
 variable "mgmt_network_ip_primary" {
