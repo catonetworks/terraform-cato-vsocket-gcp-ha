@@ -3,7 +3,6 @@
 .terraform.lock.hcl
 
 # testing directories
-**/testing/*
 **/reports/*
 
 # .tfstate files
