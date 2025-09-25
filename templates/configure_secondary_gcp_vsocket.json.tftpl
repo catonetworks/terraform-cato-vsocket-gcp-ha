@@ -8,7 +8,7 @@ response=$(curl -k -X POST \
   -H "x-API-Key: ${api_token}" \
   "${base_url}" \
   --data '{
-    "query": "mutation siteAddSecondaryGcpVSocket($accountId: ID!, $addSecondaryGcpVSocketInput: AddSecondaryGcpVSocketInput!) { site(accountId: $accountId) { addSecondaryGcpVSocket(input: $addSecondaryGcpVSocketInput) { id } } }",
+    "query": "mutation siteAddSecondaryGcpVSocket($accountId: ID!, $addSecondaryGcpVSocketInput: AddSecondaryGcpVSocketInput!) { site(accountId: $accountId) { addSecondaryGcpVSocket(input: $addSecondaryGcpVSocketInput) { socketInfo { id } } } }",
     "variables": {
       "accountId": "${account_id}",
       "addSecondaryGcpVSocketInput": {
