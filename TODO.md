@@ -1,4 +1,6 @@
  - [ ] Add Conditional for Existing Resources (VNet, Subnets, etc.)
  - [X] Add Standard Naming definitions, and Conditionals 
  - [X] Additional Updates to ReadMe.md
- - [ ]  
+ - [X] Add Labels to All supported infra 
+ - [X] Consolidate data and locals to individual files for cleanliness
+ - [ ] 

@@ -141,16 +141,28 @@ variable "subnet_lan_name" {
 variable "subnet_mgmt_cidr" {
   description = "Management Subnet CIDR"
   type        = string
+  validation {
+    condition     = can(regex("^([0-9]{1,3}\\.){3}[0-9]{1,3}/[0-9]{1,2}$", var.subnet_mgmt_cidr))
+    error_message = "Management Subnet CIDR must be a valid IPv4 CIDR notation."
+  }
 }
 
 variable "subnet_wan_cidr" {
   description = "WAN Subnet CIDR"
   type        = string
+  validation {
+    condition     = can(regex("^([0-9]{1,3}\\.){3}[0-9]{1,3}/[0-9]{1,2}$", var.subnet_wan_cidr))
+    error_message = "WAN Subnet CIDR must be a valid IPv4 CIDR notation."
+  }
 }
 
 variable "subnet_lan_cidr" {
   description = "LAN Subnet CIDR"
   type        = string
+  validation {
+    condition     = can(regex("^([0-9]{1,3}\\.){3}[0-9]{1,3}/[0-9]{1,2}$", var.subnet_lan_cidr))
+    error_message = "LAN Subnet CIDR must be a valid IPv4 CIDR notation."
+  }
 }
 
 variable "ip_mgmt_name" {
@@ -198,8 +210,9 @@ variable "machine_type" {
 variable "vm_name" {
   description = "VM Instance name (must be 1-63 characters, lowercase letters, numbers, or hyphens)"
   type        = string
+  default     = null
   validation {
-    condition     = can(regex("^[a-z][a-z0-9-]{0,61}[a-z0-9]$", var.vm_name))
+    condition     = can(regex("^[a-z][a-z0-9-]{0,61}[a-z0-9]$", var.vm_name)) || var.vm_name == null
     error_message = "VM name must be 1-63 characters long, start with a letter, and contain only lowercase letters, numbers, or hyphens."
   }
 }
@@ -226,11 +239,19 @@ variable "mgmt_network_ip_primary" {
 variable "wan_network_ip_primary" {
   description = "WAN network IP for Primary socket"
   type        = string
+  validation {
+    condition     = can(regex("^([0-9]{1,3}\\.){3}[0-9]{1,3}$", var.wan_network_ip_primary))
+    error_message = "WAN network IP must be a valid IPv4 address."
+  }
 }
 
 variable "lan_network_ip_primary" {
   description = "LAN network IP for Primary socket"
   type        = string
+  validation {
+    condition     = can(regex("^([0-9]{1,3}\\.){3}[0-9]{1,3}$", var.lan_network_ip_primary))
+    error_message = "LAN network IP must be a valid IPv4 address."
+  }
 }
 
 variable "mgmt_network_ip_secondary" {
@@ -245,16 +266,28 @@ variable "mgmt_network_ip_secondary" {
 variable "wan_network_ip_secondary" {
   description = "WAN network IP for Secondary socket"
   type        = string
+  validation {
+    condition     = can(regex("^([0-9]{1,3}\\.){3}[0-9]{1,3}$", var.wan_network_ip_secondary))
+    error_message = "WAN network IP must be a valid IPv4 address."
+  }
 }
 
 variable "lan_network_ip_secondary" {
   description = "LAN network IP for Secondary socket"
   type        = string
+  validation {
+    condition     = can(regex("^([0-9]{1,3}\\.){3}[0-9]{1,3}$", var.lan_network_ip_secondary))
+    error_message = "LAN Network IP must be a valid address"
+  }
 }
 
 variable "floating_ip" {
   description = "LAN floating IP for the site"
   type        = string
+  validation {
+    condition     = can(regex("^([0-9]{1,3}\\.){3}[0-9]{1,3}$", var.floating_ip))
+    error_message = "LAN floating IP must be a valid IPv4 address."
+  }
 }
 
 variable "public_ip_mgmt" {

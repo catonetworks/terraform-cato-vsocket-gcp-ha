@@ -19,19 +19,6 @@ Cato recommends setting the value to 1. Example call: terraform apply -paralleli
 ## Usage
 
 ```hcl
-variable "project" {
-  default = "Your-Google-Project-ID-Here"
-}
-variable "region" {
-  default = "Your-Preferred-Google-Region-Name-Here"
-}
-variable "baseurl" {}
-variable "token" {}
-variable "account_id" {}
-variable "name_prefix" {
-  default = "A-String-to-Prefix-to-new-resources"
-}
-
 provider "google" {
   project = var.project
   region  = var.region
@@ -43,31 +30,28 @@ provider "cato" {
   account_id = var.account_id
 }
 
+variable "project" {
+  default = "<GCP_Project_ID>"
+}
+variable "region" {
+  default = "<GCP_Region>"
+}
+variable "baseurl" {}
+variable "token" {}
+variable "account_id" {}
+
 # GCP/Cato vsocket HA Module
 module "vsocket-gcp-ha-vnet" {
   source           = "catonetworks/vsocket-gcp-ha/cato"
   token            = var.token
   account_id       = var.account_id
-  site_name        = "Your-Cato-site-name-here"
-  site_description = "Your Cato site desc here"
-  primary_zone     = "us-west1-a"
-  secondary_zone   = "us-west1-b"
+  site_name        = "<Cato-Site-Name>"
+  site_description = "<Cato-Site-Description>"
   region           = var.region
-
-  vpc_mgmt_name = "${var.name_prefix}-mgmt-vpc"
-  vpc_wan_name  = "${var.name_prefix}-wan-vpc"
-  vpc_lan_name  = "${var.name_prefix}-lan-vpc"
-
-  subnet_mgmt_name = "${var.name_prefix}-mgmt-subnet"
-  subnet_wan_name  = "${var.name_prefix}-wan-subnet"
-  subnet_lan_name  = "${var.name_prefix}-lan-subnet"
 
   subnet_mgmt_cidr = "10.3.1.0/24"
   subnet_wan_cidr  = "10.3.2.0/24"
   subnet_lan_cidr  = "10.3.3.0/24"
-
-  ip_mgmt_name = "${var.name_prefix}-mgmt-public-ip"
-  ip_wan_name  = "${var.name_prefix}-wan-public-ip"
 
   mgmt_network_ip_primary   = "10.3.1.4"
   mgmt_network_ip_secondary = "10.3.1.5"
@@ -79,15 +63,11 @@ module "vsocket-gcp-ha-vnet" {
   lan_network_ip_secondary = "10.3.3.5"
   floating_ip              = "10.3.3.6"
 
-  vm_name = "${var.name_prefix}-vsocket"
-
   routed_networks = {
     "Peered-VNET-1" = {
       subnet = "10.100.1.0/24"
       # interface_index is omitted, so it will default to "LAN1".
     }
-    
-    # Example of possible overrides for edge-cases
     # "On-Prem-Network-With-NAT" = {
     #   subnet            = "192.168.51.0/24"
     #   translated_subnet = "10.250.3.0/24" # Example translated range, SRT Required, set 
@@ -99,9 +79,9 @@ module "vsocket-gcp-ha-vnet" {
   upstream_bandwidth   = 1000
   downstream_bandwidth = 1000
 
-
   tags   = []
   labels = {}
+}
 ```
 ## Site Location Reference
 
@@ -234,7 +214,7 @@ No modules.
 | <a name="input_tags"></a> [tags](#input\_tags) | Tags to be appended to GCP resources | `list(string)` | `[]` | no |
 | <a name="input_token"></a> [token](#input\_token) | API token used to authenticate with the Cato Networks API. | `string` | n/a | yes |
 | <a name="input_upstream_bandwidth"></a> [upstream\_bandwidth](#input\_upstream\_bandwidth) | Sockets upstream interface WAN Bandwidth in Mbps | `string` | `"null"` | no |
-| <a name="input_vm_name"></a> [vm\_name](#input\_vm\_name) | VM Instance name (must be 1-63 characters, lowercase letters, numbers, or hyphens) | `string` | n/a | yes |
+| <a name="input_vm_name"></a> [vm\_name](#input\_vm\_name) | VM Instance name (must be 1-63 characters, lowercase letters, numbers, or hyphens) | `string` | `null` | no |
 | <a name="input_vpc_lan_name"></a> [vpc\_lan\_name](#input\_vpc\_lan\_name) | LAN VPC name | `string` | `null` | no |
 | <a name="input_vpc_mgmt_name"></a> [vpc\_mgmt\_name](#input\_vpc\_mgmt\_name) | Management VPC name | `string` | `null` | no |
 | <a name="input_vpc_wan_name"></a> [vpc\_wan\_name](#input\_vpc\_wan\_name) | WAN VPC name | `string` | `null` | no |

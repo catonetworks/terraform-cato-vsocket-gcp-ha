@@ -1,16 +1,3 @@
-variable "project" {
-  default = "cato-gcp-cross-connect"
-}
-variable "region" {
-  default = "us-west1"
-}
-variable "baseurl" {}
-variable "token" {}
-variable "account_id" {}
-variable "name_prefix" {
-  default = "jr-test"
-}
-
 provider "google" {
   project = var.project
   region  = var.region
@@ -22,6 +9,16 @@ provider "cato" {
   account_id = var.account_id
 }
 
+variable "project" {
+  default = "cato-gcp-cross-connect"
+}
+variable "region" {
+  default = "us-west1"
+}
+variable "baseurl" {}
+variable "token" {}
+variable "account_id" {}
+
 # GCP/Cato vsocket HA Module
 module "vsocket-gcp-ha-vnet" {
   #   source                  = "catonetworks/vsocket-gcp-ha/cato"
@@ -30,8 +27,6 @@ module "vsocket-gcp-ha-vnet" {
   account_id       = var.account_id
   site_name        = "jr-gcp-site"
   site_description = "jr-test-gcp-ha-site"
-  primary_zone     = "us-west1-a"
-  secondary_zone   = "us-west1-b"
   region           = var.region
 
   subnet_mgmt_cidr = "10.3.1.0/24"
@@ -48,8 +43,6 @@ module "vsocket-gcp-ha-vnet" {
   lan_network_ip_secondary = "10.3.3.5"
   floating_ip              = "10.3.3.6"
 
-  vm_name = "${var.name_prefix}-vsocket"
-
   routed_networks = {
     "Peered-VNET-1" = {
       subnet = "10.100.1.0/24"
@@ -65,7 +58,6 @@ module "vsocket-gcp-ha-vnet" {
 
   upstream_bandwidth   = 1000
   downstream_bandwidth = 1000
-
 
   tags   = []
   labels = {}
