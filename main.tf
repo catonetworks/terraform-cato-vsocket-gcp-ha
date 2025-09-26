@@ -42,6 +42,7 @@ resource "google_compute_address" "primary_ip_mgmt" {
   name         = "${local.ip_mgmt_name}-primary"
   region       = var.region
   network_tier = var.network_tier
+  labels       = var.labels
 }
 
 resource "google_compute_address" "primary_ip_wan" {
@@ -49,6 +50,7 @@ resource "google_compute_address" "primary_ip_wan" {
   name         = "${local.ip_wan_name}-primary"
   region       = var.region
   network_tier = var.network_tier
+  labels       = var.labels
 }
 
 resource "google_compute_address" "secondary_ip_mgmt" {
@@ -56,6 +58,7 @@ resource "google_compute_address" "secondary_ip_mgmt" {
   name         = "${local.ip_mgmt_name}-secondary"
   region       = var.region
   network_tier = var.network_tier
+  labels       = var.labels
 }
 
 resource "google_compute_address" "secondary_ip_wan" {
@@ -63,6 +66,7 @@ resource "google_compute_address" "secondary_ip_wan" {
   name         = "${local.ip_wan_name}-secondary"
   region       = var.region
   network_tier = var.network_tier
+  labels       = var.labels
 }
 
 # DESTROY-TIME DELAY
@@ -75,7 +79,7 @@ resource "google_compute_address" "secondary_ip_wan" {
 #   disconnections, causing the site destroy operation to fail.
 # - This is a known timing issue with the Cato provider during destroy operations.
 #
-# This resource replaces the previous null_resource workaround.
+
 resource "time_sleep" "site_destroy_delay" {
   # This resource has no dependencies during creation, but during destroy it will
   # be destroyed after all resources that depend on the Cato site.
@@ -106,7 +110,6 @@ resource "cato_license" "license" {
   license_id = var.license_id
   bw         = var.license_bw == null ? null : var.license_bw
 }
-########## End of misc. 
 
 # CMA site
 resource "cato_socket_site" "gcp-site" {
@@ -122,11 +125,6 @@ resource "cato_socket_site" "gcp-site" {
   site_location = local.cur_site_location
   site_type     = var.site_type
 }
-
-data "cato_accountSnapshotSite" "gcp-site" {
-  id = cato_socket_site.gcp-site.id
-}
-
 
 
 # Primary vSocket boot disk
@@ -196,7 +194,7 @@ resource "google_compute_instance" "primary_vsocket" {
 
   # Custom metadata with serial id
   metadata = {
-    cato-serial-id = data.cato_accountSnapshotSite.gcp-site.info.sockets[0].serial
+    cato-serial-id = local.primary_serial_safe
   }
 
   scheduling {
@@ -250,11 +248,6 @@ resource "time_sleep" "secondary_serial_delay" {
   create_duration = "30s"
 }
 
-# Create Secondary Vsocket Virtual Machine
-data "cato_accountSnapshotSite" "gcp-site-for-secondary" {
-  depends_on = [time_sleep.secondary_serial_delay]
-  id         = cato_socket_site.gcp-site.id
-}
 
 # Secondary vSocket boot disk
 resource "google_compute_disk" "secondary_boot_disk" {

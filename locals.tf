@@ -4,6 +4,8 @@ locals {
   secondary_name        = "${local.socket_name}-secondary"
   load_balancer_name    = "${local.socket_name}-lb"
   vsocket_tags          = concat(var.tags, ["vsocket"])
+  primary_serial        = [for s in data.cato_accountSnapshotSite.gcp-site.info.sockets : s.serial if s.is_primary == true]
+  primary_serial_safe   = length(local.primary_serial) > 0 ? local.primary_serial[0] : ""
   secondary_serial      = [for s in data.cato_accountSnapshotSite.gcp-site-for-secondary.info.sockets : s.serial if s.is_primary == false]
   secondary_serial_safe = length(local.secondary_serial) > 0 ? local.secondary_serial[0] : ""
   lan_first_ip          = cidrhost(var.subnet_lan_cidr, 1)
