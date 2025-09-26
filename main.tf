@@ -1,36 +1,36 @@
 # VPC Networks
 resource "google_compute_network" "vpc_mgmt" {
-  name                    = var.vpc_mgmt_name
+  name                    = local.vpc_mgmt_name
   auto_create_subnetworks = false
 }
 
 resource "google_compute_network" "vpc_wan" {
-  name                    = var.vpc_wan_name
+  name                    = local.vpc_wan_name
   auto_create_subnetworks = false
 }
 
 resource "google_compute_network" "vpc_lan" {
-  name                    = var.vpc_lan_name
+  name                    = local.vpc_lan_name
   auto_create_subnetworks = false
 }
 
 # Subnets
 resource "google_compute_subnetwork" "subnet_mgmt" {
-  name          = var.subnet_mgmt_name
+  name          = local.subnet_mgmt_name
   ip_cidr_range = var.subnet_mgmt_cidr
   network       = google_compute_network.vpc_mgmt.id
   region        = var.region
 }
 
 resource "google_compute_subnetwork" "subnet_wan" {
-  name          = var.subnet_wan_name
+  name          = local.subnet_wan_name
   ip_cidr_range = var.subnet_wan_cidr
   network       = google_compute_network.vpc_wan.id
   region        = var.region
 }
 
 resource "google_compute_subnetwork" "subnet_lan" {
-  name          = var.subnet_lan_name
+  name          = local.subnet_lan_name
   ip_cidr_range = var.subnet_lan_cidr
   network       = google_compute_network.vpc_lan.id
   region        = var.region
@@ -39,39 +39,30 @@ resource "google_compute_subnetwork" "subnet_lan" {
 # Static IPs
 resource "google_compute_address" "primary_ip_mgmt" {
   count        = var.public_ip_mgmt ? 1 : 0
-  name         = "${var.ip_mgmt_name}-primary"
+  name         = "${local.ip_mgmt_name}-primary"
   region       = var.region
   network_tier = var.network_tier
 }
 
 resource "google_compute_address" "primary_ip_wan" {
   count        = var.public_ip_wan ? 1 : 0
-  name         = "${var.ip_wan_name}-primary"
+  name         = "${local.ip_wan_name}-primary"
   region       = var.region
   network_tier = var.network_tier
 }
 
 resource "google_compute_address" "secondary_ip_mgmt" {
   count        = var.public_ip_mgmt ? 1 : 0
-  name         = "${var.ip_mgmt_name}-secondary"
+  name         = "${local.ip_mgmt_name}-secondary"
   region       = var.region
   network_tier = var.network_tier
 }
 
 resource "google_compute_address" "secondary_ip_wan" {
   count        = var.public_ip_wan ? 1 : 0
-  name         = "${var.ip_wan_name}-secondary"
+  name         = "${local.ip_wan_name}-secondary"
   region       = var.region
   network_tier = var.network_tier
-}
-
-
-########## Start of misc. 
-locals {
-  primary_name       = "${var.vm_name}-primary"
-  secondary_name     = "${var.vm_name}-secondary"
-  load_balancer_name = "${var.vm_name}-lb"
-  vsocket_tags       = concat(var.tags, ["vsocket"])
 }
 
 # DESTROY-TIME DELAY
@@ -88,31 +79,12 @@ locals {
 resource "time_sleep" "site_destroy_delay" {
   # This resource has no dependencies during creation, but during destroy it will
   # be destroyed after all resources that depend on the Cato site.
-  destroy_duration = "10s"
-}
-
-# CMA site
-resource "cato_socket_site" "gcp-site" {
-  depends_on = [time_sleep.site_destroy_delay]
-
-  connection_type = "SOCKET_GCP1500"
-  description     = var.site_description
-  name            = var.site_name
-  native_range = {
-    native_network_range = var.subnet_lan_cidr
-    local_ip             = var.lan_network_ip_primary
-  }
-  site_location = local.cur_site_location
-  site_type     = var.site_type
-}
-
-data "cato_accountSnapshotSite" "gcp-site" {
-  id = cato_socket_site.gcp-site.id
+  destroy_duration = "15s"
 }
 
 resource "google_compute_firewall" "allow_rfc1918" {
   count   = var.create_firewall_rule ? 1 : 0
-  name    = var.lan_firewall_rule_name
+  name    = var.lan_firewall_rule_name == null ? format("%s-lan-subnet-fw-rule", var.site_name) : var.lan_firewall_rule_name
   network = google_compute_network.vpc_lan.name
   allow {
     protocol = "all" # Allows all protocols (TCP, UDP, ICMP, etc.)
@@ -136,12 +108,33 @@ resource "cato_license" "license" {
 }
 ########## End of misc. 
 
+# CMA site
+resource "cato_socket_site" "gcp-site" {
+  depends_on = [time_sleep.site_destroy_delay]
+
+  connection_type = "SOCKET_GCP1500"
+  description     = var.site_description
+  name            = var.site_name
+  native_range = {
+    native_network_range = var.subnet_lan_cidr
+    local_ip             = var.lan_network_ip_primary
+  }
+  site_location = local.cur_site_location
+  site_type     = var.site_type
+}
+
+data "cato_accountSnapshotSite" "gcp-site" {
+  id = cato_socket_site.gcp-site.id
+}
+
+
+
 # Primary vSocket boot disk
 resource "google_compute_disk" "primary_boot_disk" {
   depends_on = [cato_socket_site.gcp-site, time_sleep.site_destroy_delay]
   name       = "${local.primary_name}-boot-disk"
   type       = "pd-balanced"
-  zone       = var.primary_zone
+  zone       = local.primary_zone
   size       = var.boot_disk_size
   image      = var.boot_disk_image
   labels     = var.labels
@@ -152,7 +145,7 @@ resource "google_compute_instance" "primary_vsocket" {
   depends_on   = [google_compute_disk.primary_boot_disk]
   name         = local.primary_name
   machine_type = var.machine_type
-  zone         = var.primary_zone
+  zone         = local.primary_zone
 
   can_ip_forward = true
 
@@ -263,16 +256,11 @@ data "cato_accountSnapshotSite" "gcp-site-for-secondary" {
   id         = cato_socket_site.gcp-site.id
 }
 
-locals {
-  secondary_serial      = [for s in data.cato_accountSnapshotSite.gcp-site-for-secondary.info.sockets : s.serial if s.is_primary == false]
-  secondary_serial_safe = length(local.secondary_serial) > 0 ? local.secondary_serial[0] : ""
-}
-
 # Secondary vSocket boot disk
 resource "google_compute_disk" "secondary_boot_disk" {
   name   = "${local.secondary_name}-boot-disk"
   type   = "pd-balanced"
-  zone   = var.secondary_zone
+  zone   = local.secondary_zone
   size   = var.boot_disk_size
   image  = var.boot_disk_image
   labels = var.labels
@@ -283,7 +271,7 @@ resource "google_compute_instance" "secondary_vsocket" {
   depends_on   = [google_compute_disk.secondary_boot_disk]
   name         = local.secondary_name
   machine_type = var.machine_type
-  zone         = var.secondary_zone
+  zone         = local.secondary_zone
 
   can_ip_forward = true
 
@@ -348,7 +336,7 @@ resource "google_compute_instance" "secondary_vsocket" {
 
   tags = local.vsocket_tags
   labels = merge(var.labels, {
-    name = lower("${var.site_name}-vsocket")
+    name = lower("${var.site_name}-secondary-vsocket")
   })
 }
 
@@ -359,7 +347,7 @@ resource "google_compute_network_endpoint_group" "primary_neg" {
   name                  = "${local.primary_name}-neg"
   network               = google_compute_network.vpc_lan.id
   subnetwork            = google_compute_subnetwork.subnet_lan.id
-  zone                  = var.primary_zone
+  zone                  = local.primary_zone
   network_endpoint_type = "GCE_VM_IP"
 }
 
@@ -367,7 +355,7 @@ resource "google_compute_network_endpoint" "primary-neg-endpoint" {
   network_endpoint_group = google_compute_network_endpoint_group.primary_neg.name
   instance               = google_compute_instance.primary_vsocket.name
   ip_address             = var.lan_network_ip_primary
-  zone                   = var.primary_zone
+  zone                   = local.primary_zone
 }
 
 # NEG for Secondary
@@ -375,7 +363,7 @@ resource "google_compute_network_endpoint_group" "secondary_neg" {
   name                  = "${local.secondary_name}-neg"
   network               = google_compute_network.vpc_lan.id
   subnetwork            = google_compute_subnetwork.subnet_lan.id
-  zone                  = var.secondary_zone
+  zone                  = local.secondary_zone
   network_endpoint_type = "GCE_VM_IP"
 }
 
@@ -383,7 +371,7 @@ resource "google_compute_network_endpoint" "secondary-neg-endpoint" {
   network_endpoint_group = google_compute_network_endpoint_group.secondary_neg.name
   instance               = google_compute_instance.secondary_vsocket.name
   ip_address             = var.lan_network_ip_secondary
-  zone                   = var.secondary_zone
+  zone                   = local.secondary_zone
 }
 
 # Health check
@@ -485,4 +473,25 @@ resource "google_network_connectivity_policy_based_route" "route_skip_socket" {
   }
 }
 
+resource "cato_network_range" "routedgcp" {
+  for_each        = var.routed_networks
+  site_id         = cato_socket_site.gcp-site.id
+  name            = each.key
+  range_type      = "Routed"
+  gateway         = coalesce(each.value.gateway, local.lan_first_ip)
+  interface_index = each.value.interface_index
+  # Access attributes from the value object
+  subnet            = each.value.subnet
+  translated_subnet = var.enable_static_range_translation ? coalesce(each.value.translated_subnet, each.value.subnet) : null
+  # This will be null if not defined, and the provider will ignore it.
+}
 
+resource "cato_wan_interface" "wan" {
+  site_id              = cato_socket_site.gcp-site.id
+  interface_id         = "WAN1"
+  name                 = "WAN 1"
+  upstream_bandwidth   = var.upstream_bandwidth
+  downstream_bandwidth = var.downstream_bandwidth
+  role                 = "wan_1"
+  precedence           = "ACTIVE"
+}

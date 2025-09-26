@@ -93,41 +93,49 @@ variable "region" {
 variable "primary_zone" {
   description = "GCP Zone of Primary vSocket"
   type        = string
+  default     = null
 }
 
 variable "secondary_zone" {
   description = "GCP Zone of Secondary vSocket"
   type        = string
+  default     = null
 }
 
 variable "vpc_mgmt_name" {
   description = "Management VPC name"
   type        = string
+  default     = null
 }
 
 variable "vpc_wan_name" {
   description = "WAN VPC name"
   type        = string
+  default     = null
 }
 
 variable "vpc_lan_name" {
   description = "LAN VPC name"
   type        = string
+  default     = null
 }
 
 variable "subnet_mgmt_name" {
   description = "Management Subnet name"
   type        = string
+  default     = null
 }
 
 variable "subnet_wan_name" {
   description = "WAN Subnet name"
   type        = string
+  default     = null
 }
 
 variable "subnet_lan_name" {
   description = "LAN Subnet name"
   type        = string
+  default     = null
 }
 
 variable "subnet_mgmt_cidr" {
@@ -148,11 +156,13 @@ variable "subnet_lan_cidr" {
 variable "ip_mgmt_name" {
   description = "Management Static IP name"
   type        = string
+  default     = null
 }
 
 variable "ip_wan_name" {
   description = "WAN Static IP name"
   type        = string
+  default     = null
 }
 
 variable "boot_disk_size" {
@@ -298,4 +308,50 @@ variable "license_bw" {
   description = "The license bandwidth number for the cato site, specifying bandwidth ONLY applies for pooled licenses.  For a standard site license that is not pooled, leave this value null. Must be a number greater than 0 and an increment of 10."
   type        = string
   default     = null
+}
+
+variable "enable_static_range_translation" {
+  description = "Enables the ability to use translated ranges"
+  type        = string
+  default     = false
+}
+
+variable "routed_networks" {
+  description = <<EOF
+  A map of routed networks to be accessed behind the vSocket site.
+  - The key is the logical name for the network.
+  - The value is an object containing:
+    - "subnet" (string, required): The actual CIDR range of the network.
+    - "translated_subnet" (string, optional): The NATed CIDR range if translation is used.
+  Example: 
+  routed_networks = {
+    "Peered-VNET-1" = {
+      subnet = "10.100.1.0/24"
+    }
+    "On-Prem-Network-NAT" = {
+      subnet            = "192.168.51.0/24"
+      translated_subnet = "10.200.1.0/24"
+    }
+  }
+  EOF
+  type = map(object({
+    subnet            = string
+    translated_subnet = optional(string)
+    gateway           = optional(string)
+    interface_index   = optional(string, "LAN1")
+  }))
+  default = {}
+}
+
+## Socket interface settings
+variable "upstream_bandwidth" {
+  description = "Sockets upstream interface WAN Bandwidth in Mbps"
+  type        = string
+  default     = "null"
+}
+
+variable "downstream_bandwidth" {
+  description = "Sockets downstream interface WAN Bandwidth in Mbps"
+  type        = string
+  default     = "null"
 }

@@ -28,26 +28,15 @@ module "vsocket-gcp-ha-vnet" {
   source           = "../"
   token            = var.token
   account_id       = var.account_id
-  site_name        = "Your-Cato-site-name-here"
-  site_description = "Your Cato site desc here"
+  site_name        = "jr-gcp-site"
+  site_description = "jr-test-gcp-ha-site"
   primary_zone     = "us-west1-a"
   secondary_zone   = "us-west1-b"
   region           = var.region
 
-  vpc_mgmt_name = "${var.name_prefix}-mgmt-vpc"
-  vpc_wan_name  = "${var.name_prefix}-wan-vpc"
-  vpc_lan_name  = "${var.name_prefix}-lan-vpc"
-
-  subnet_mgmt_name = "${var.name_prefix}-mgmt-subnet"
-  subnet_wan_name  = "${var.name_prefix}-wan-subnet"
-  subnet_lan_name  = "${var.name_prefix}-lan-subnet"
-
   subnet_mgmt_cidr = "10.3.1.0/24"
   subnet_wan_cidr  = "10.3.2.0/24"
   subnet_lan_cidr  = "10.3.3.0/24"
-
-  ip_mgmt_name = "${var.name_prefix}-mgmt-public-ip"
-  ip_wan_name  = "${var.name_prefix}-wan-public-ip"
 
   mgmt_network_ip_primary   = "10.3.1.4"
   mgmt_network_ip_secondary = "10.3.1.5"
@@ -60,6 +49,23 @@ module "vsocket-gcp-ha-vnet" {
   floating_ip              = "10.3.3.6"
 
   vm_name = "${var.name_prefix}-vsocket"
+
+  routed_networks = {
+    "Peered-VNET-1" = {
+      subnet = "10.100.1.0/24"
+      # interface_index is omitted, so it will default to "LAN1".
+    }
+    # "On-Prem-Network-With-NAT" = {
+    #   subnet            = "192.168.51.0/24"
+    #   translated_subnet = "10.250.3.0/24" # Example translated range, SRT Required, set 
+    #   interface_index = "LAN2" # Overriding the default value.
+    #   gateway = "192.168.51.254" # Overriding the default value of LAN1 LocalIP
+    # }
+  }
+
+  upstream_bandwidth   = 1000
+  downstream_bandwidth = 1000
+
 
   tags   = []
   labels = {}

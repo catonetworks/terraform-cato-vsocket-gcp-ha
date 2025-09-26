@@ -45,13 +45,13 @@ provider "cato" {
 
 # GCP/Cato vsocket HA Module
 module "vsocket-gcp-ha-vnet" {
-  source                  = "catonetworks/vsocket-gcp-ha/cato"
+  source           = "catonetworks/vsocket-gcp-ha/cato"
   token            = var.token
   account_id       = var.account_id
   site_name        = "Your-Cato-site-name-here"
   site_description = "Your Cato site desc here"
-  primary_zone     = "Preferred-Zone-ID-Here (Primary)" #Example us-west1-a
-  secondary_zone   = "Preferred-Zone-ID-Here (Secondary)" #Example us-west1-b
+  primary_zone     = "us-west1-a"
+  secondary_zone   = "us-west1-b"
   region           = var.region
 
   vpc_mgmt_name = "${var.name_prefix}-mgmt-vpc"
@@ -80,6 +80,25 @@ module "vsocket-gcp-ha-vnet" {
   floating_ip              = "10.3.3.6"
 
   vm_name = "${var.name_prefix}-vsocket"
+
+  routed_networks = {
+    "Peered-VNET-1" = {
+      subnet = "10.100.1.0/24"
+      # interface_index is omitted, so it will default to "LAN1".
+    }
+    
+    # Example of possible overrides for edge-cases
+    # "On-Prem-Network-With-NAT" = {
+    #   subnet            = "192.168.51.0/24"
+    #   translated_subnet = "10.250.3.0/24" # Example translated range, SRT Required, set 
+    #   interface_index = "LAN2" # Overriding the default value.
+    #   gateway = "192.168.51.254" # Overriding the default value of LAN1 LocalIP
+    # }
+  }
+
+  upstream_bandwidth   = 1000
+  downstream_bandwidth = 1000
+
 
   tags   = []
   labels = {}
@@ -136,7 +155,9 @@ No modules.
 | Name | Type |
 |------|------|
 | [cato_license.license](https://registry.terraform.io/providers/catonetworks/cato/latest/docs/resources/license) | resource |
+| [cato_network_range.routedgcp](https://registry.terraform.io/providers/catonetworks/cato/latest/docs/resources/network_range) | resource |
 | [cato_socket_site.gcp-site](https://registry.terraform.io/providers/catonetworks/cato/latest/docs/resources/socket_site) | resource |
+| [cato_wan_interface.wan](https://registry.terraform.io/providers/catonetworks/cato/latest/docs/resources/wan_interface) | resource |
 | [google_compute_address.primary_ip_mgmt](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_address) | resource |
 | [google_compute_address.primary_ip_wan](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_address) | resource |
 | [google_compute_address.secondary_ip_mgmt](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_address) | resource |
@@ -179,9 +200,11 @@ No modules.
 | <a name="input_boot_disk_image"></a> [boot\_disk\_image](#input\_boot\_disk\_image) | Boot disk image for vSocket instances | `string` | `"projects/cato-vsocket-production/global/images/gcp-socket-image-v22-0-19207"` | no |
 | <a name="input_boot_disk_size"></a> [boot\_disk\_size](#input\_boot\_disk\_size) | Boot disk size in GB (minimum 10 GB) | `number` | `20` | no |
 | <a name="input_create_firewall_rule"></a> [create\_firewall\_rule](#input\_create\_firewall\_rule) | Whether to create the firewall rule for lan traffic | `bool` | `true` | no |
+| <a name="input_downstream_bandwidth"></a> [downstream\_bandwidth](#input\_downstream\_bandwidth) | Sockets downstream interface WAN Bandwidth in Mbps | `string` | `"null"` | no |
+| <a name="input_enable_static_range_translation"></a> [enable\_static\_range\_translation](#input\_enable\_static\_range\_translation) | Enables the ability to use translated ranges | `string` | `false` | no |
 | <a name="input_floating_ip"></a> [floating\_ip](#input\_floating\_ip) | LAN floating IP for the site | `string` | n/a | yes |
-| <a name="input_ip_mgmt_name"></a> [ip\_mgmt\_name](#input\_ip\_mgmt\_name) | Management Static IP name | `string` | n/a | yes |
-| <a name="input_ip_wan_name"></a> [ip\_wan\_name](#input\_ip\_wan\_name) | WAN Static IP name | `string` | n/a | yes |
+| <a name="input_ip_mgmt_name"></a> [ip\_mgmt\_name](#input\_ip\_mgmt\_name) | Management Static IP name | `string` | `null` | no |
+| <a name="input_ip_wan_name"></a> [ip\_wan\_name](#input\_ip\_wan\_name) | WAN Static IP name | `string` | `null` | no |
 | <a name="input_labels"></a> [labels](#input\_labels) | Labels to be appended to GCP resources | `map(string)` | `{}` | no |
 | <a name="input_lan_firewall_rule_name"></a> [lan\_firewall\_rule\_name](#input\_lan\_firewall\_rule\_name) | Name of the firewall rule (1-63 chars, lowercase letters, numbers, or hyphens) | `string` | `"allow-private-ranges-traffic-in-lan-subnet-fw-rule"` | no |
 | <a name="input_lan_network_ip_primary"></a> [lan\_network\_ip\_primary](#input\_lan\_network\_ip\_primary) | LAN network IP for Primary socket | `string` | n/a | yes |
@@ -192,27 +215,29 @@ No modules.
 | <a name="input_mgmt_network_ip_primary"></a> [mgmt\_network\_ip\_primary](#input\_mgmt\_network\_ip\_primary) | Management network IP  for Primary socket | `string` | n/a | yes |
 | <a name="input_mgmt_network_ip_secondary"></a> [mgmt\_network\_ip\_secondary](#input\_mgmt\_network\_ip\_secondary) | Management network IP for Secondary socket | `string` | n/a | yes |
 | <a name="input_network_tier"></a> [network\_tier](#input\_network\_tier) | Network tier for the public IP | `string` | `"STANDARD"` | no |
-| <a name="input_primary_zone"></a> [primary\_zone](#input\_primary\_zone) | GCP Zone of Primary vSocket | `string` | n/a | yes |
+| <a name="input_primary_zone"></a> [primary\_zone](#input\_primary\_zone) | GCP Zone of Primary vSocket | `string` | `null` | no |
 | <a name="input_public_ip_mgmt"></a> [public\_ip\_mgmt](#input\_public\_ip\_mgmt) | Whether to assign the existing static IP to management interface. If false, no public IP will be assigned. | `bool` | `true` | no |
 | <a name="input_public_ip_wan"></a> [public\_ip\_wan](#input\_public\_ip\_wan) | Whether to assign the existing static IP to WAN interface. If false, no public IP will be assigned. | `bool` | `true` | no |
 | <a name="input_region"></a> [region](#input\_region) | GCP Region | `string` | n/a | yes |
-| <a name="input_secondary_zone"></a> [secondary\_zone](#input\_secondary\_zone) | GCP Zone of Secondary vSocket | `string` | n/a | yes |
+| <a name="input_routed_networks"></a> [routed\_networks](#input\_routed\_networks) | A map of routed networks to be accessed behind the vSocket site.<br/>  - The key is the logical name for the network.<br/>  - The value is an object containing:<br/>    - "subnet" (string, required): The actual CIDR range of the network.<br/>    - "translated\_subnet" (string, optional): The NATed CIDR range if translation is used.<br/>  Example: <br/>  routed\_networks = {<br/>    "Peered-VNET-1" = {<br/>      subnet = "10.100.1.0/24"<br/>    }<br/>    "On-Prem-Network-NAT" = {<br/>      subnet            = "192.168.51.0/24"<br/>      translated\_subnet = "10.200.1.0/24"<br/>    }<br/>  } | <pre>map(object({<br/>    subnet            = string<br/>    translated_subnet = optional(string)<br/>    gateway           = optional(string)<br/>    interface_index   = optional(string, "LAN1")<br/>  }))</pre> | `{}` | no |
+| <a name="input_secondary_zone"></a> [secondary\_zone](#input\_secondary\_zone) | GCP Zone of Secondary vSocket | `string` | `null` | no |
 | <a name="input_site_description"></a> [site\_description](#input\_site\_description) | Description of the vsocket site | `string` | n/a | yes |
 | <a name="input_site_location"></a> [site\_location](#input\_site\_location) | Site location information. If all fields are null, location will be automatically determined from the GCP region. | <pre>object({<br/>    city         = optional(string)<br/>    country_code = optional(string)<br/>    state_code   = optional(string)<br/>    timezone     = optional(string)<br/>  })</pre> | <pre>{<br/>  "city": null,<br/>  "country_code": null,<br/>  "state_code": null,<br/>  "timezone": null<br/>}</pre> | no |
 | <a name="input_site_name"></a> [site\_name](#input\_site\_name) | Name of the vsocket site | `string` | n/a | yes |
 | <a name="input_site_type"></a> [site\_type](#input\_site\_type) | The type of the site | `string` | `"CLOUD_DC"` | no |
 | <a name="input_subnet_lan_cidr"></a> [subnet\_lan\_cidr](#input\_subnet\_lan\_cidr) | LAN Subnet CIDR | `string` | n/a | yes |
-| <a name="input_subnet_lan_name"></a> [subnet\_lan\_name](#input\_subnet\_lan\_name) | LAN Subnet name | `string` | n/a | yes |
+| <a name="input_subnet_lan_name"></a> [subnet\_lan\_name](#input\_subnet\_lan\_name) | LAN Subnet name | `string` | `null` | no |
 | <a name="input_subnet_mgmt_cidr"></a> [subnet\_mgmt\_cidr](#input\_subnet\_mgmt\_cidr) | Management Subnet CIDR | `string` | n/a | yes |
-| <a name="input_subnet_mgmt_name"></a> [subnet\_mgmt\_name](#input\_subnet\_mgmt\_name) | Management Subnet name | `string` | n/a | yes |
+| <a name="input_subnet_mgmt_name"></a> [subnet\_mgmt\_name](#input\_subnet\_mgmt\_name) | Management Subnet name | `string` | `null` | no |
 | <a name="input_subnet_wan_cidr"></a> [subnet\_wan\_cidr](#input\_subnet\_wan\_cidr) | WAN Subnet CIDR | `string` | n/a | yes |
-| <a name="input_subnet_wan_name"></a> [subnet\_wan\_name](#input\_subnet\_wan\_name) | WAN Subnet name | `string` | n/a | yes |
+| <a name="input_subnet_wan_name"></a> [subnet\_wan\_name](#input\_subnet\_wan\_name) | WAN Subnet name | `string` | `null` | no |
 | <a name="input_tags"></a> [tags](#input\_tags) | Tags to be appended to GCP resources | `list(string)` | `[]` | no |
 | <a name="input_token"></a> [token](#input\_token) | API token used to authenticate with the Cato Networks API. | `string` | n/a | yes |
+| <a name="input_upstream_bandwidth"></a> [upstream\_bandwidth](#input\_upstream\_bandwidth) | Sockets upstream interface WAN Bandwidth in Mbps | `string` | `"null"` | no |
 | <a name="input_vm_name"></a> [vm\_name](#input\_vm\_name) | VM Instance name (must be 1-63 characters, lowercase letters, numbers, or hyphens) | `string` | n/a | yes |
-| <a name="input_vpc_lan_name"></a> [vpc\_lan\_name](#input\_vpc\_lan\_name) | LAN VPC name | `string` | n/a | yes |
-| <a name="input_vpc_mgmt_name"></a> [vpc\_mgmt\_name](#input\_vpc\_mgmt\_name) | Management VPC name | `string` | n/a | yes |
-| <a name="input_vpc_wan_name"></a> [vpc\_wan\_name](#input\_vpc\_wan\_name) | WAN VPC name | `string` | n/a | yes |
+| <a name="input_vpc_lan_name"></a> [vpc\_lan\_name](#input\_vpc\_lan\_name) | LAN VPC name | `string` | `null` | no |
+| <a name="input_vpc_mgmt_name"></a> [vpc\_mgmt\_name](#input\_vpc\_mgmt\_name) | Management VPC name | `string` | `null` | no |
+| <a name="input_vpc_wan_name"></a> [vpc\_wan\_name](#input\_vpc\_wan\_name) | WAN VPC name | `string` | `null` | no |
 | <a name="input_wan_network_ip_primary"></a> [wan\_network\_ip\_primary](#input\_wan\_network\_ip\_primary) | WAN network IP for Primary socket | `string` | n/a | yes |
 | <a name="input_wan_network_ip_secondary"></a> [wan\_network\_ip\_secondary](#input\_wan\_network\_ip\_secondary) | WAN network IP for Secondary socket | `string` | n/a | yes |
 
