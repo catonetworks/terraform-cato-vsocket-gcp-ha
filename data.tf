@@ -1,4 +1,3 @@
-
 data "cato_accountSnapshotSite" "gcp-site" {
   id = cato_socket_site.gcp-site.id
 }
