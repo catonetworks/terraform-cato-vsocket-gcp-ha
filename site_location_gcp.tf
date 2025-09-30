@@ -48,7 +48,7 @@ locals {
     "africasouth1" = { city = "Johannesburg", state = null, country = "South Africa", continent = "Africa", timezone = "Africa/Johannesburg" }
 
     # Asia Pacific
-    "asiaeast1"      = { city = "Changhua County", state = null, country = "Taiwan", continent = "Asia Pacific", timezone = "Asia/Taipei" }
+    "asiaeast1"      = { city = "Chang-hua", state = null, country = "Taiwan", continent = "Asia Pacific", timezone = "Asia/Taipei" }
     "asiaeast2"      = { city = "Hong Kong", state = null, country = "Hong Kong", continent = "Asia Pacific", timezone = "Asia/Hong_Kong" }
     "asianortheast1" = { city = "Tokyo", state = null, country = "Japan", continent = "Asia Pacific", timezone = "Asia/Tokyo" }
     "asianortheast2" = { city = "Osaka", state = null, country = "Japan", continent = "Asia Pacific", timezone = "Asia/Tokyo" }
@@ -67,11 +67,11 @@ locals {
     "europenorth1"     = { city = "Hamina", state = null, country = "Finland", continent = "Europe", timezone = "Europe/Helsinki" }
     "europenorth2"     = { city = "Stockholm", state = null, country = "Sweden", continent = "Europe", timezone = "Europe/Stockholm" }
     "europesouthwest1" = { city = "Madrid", state = null, country = "Spain", continent = "Europe", timezone = "Europe/Madrid" }
-    "europewest1"      = { city = "St. Ghislain", state = null, country = "Belgium", continent = "Europe", timezone = "Europe/Brussels" }
+    "europewest1"      = { city = "Saint-Ghislain", state = null, country = "Belgium", continent = "Europe", timezone = "Europe/Brussels" }
     "europewest2"      = { city = "London", state = null, country = "United Kingdom", continent = "Europe", timezone = "Europe/London" }
-    "europewest3"      = { city = "Frankfurt", state = null, country = "Germany", continent = "Europe", timezone = "Europe/Berlin" }
-    "europewest4"      = { city = "Eemshaven", state = null, country = "Netherlands", continent = "Europe", timezone = "Europe/Amsterdam" }
-    "europewest6"      = { city = "Zurich", state = null, country = "Switzerland", continent = "Europe", timezone = "Europe/Zurich" }
+    "europewest3"      = { city = "Frankfurt (Oder)", state = null, country = "Germany", continent = "Europe", timezone = "Europe/Berlin" }
+    "europewest4"      = { city = "Uithuizen", state = null, country = "Netherlands", continent = "Europe", timezone = "Europe/Amsterdam" }
+    "europewest6"      = { city = "Zürich", state = null, country = "Switzerland", continent = "Europe", timezone = "Europe/Zurich" }
     "europewest8"      = { city = "Milan", state = null, country = "Italy", continent = "Europe", timezone = "Europe/Rome" }
     "europewest9"      = { city = "Paris", state = null, country = "France", continent = "Europe", timezone = "Europe/Paris" }
     "europewest10"     = { city = "Berlin", state = null, country = "Germany", continent = "Europe", timezone = "Europe/Berlin" }
@@ -83,11 +83,11 @@ locals {
     "mewest1"    = { city = "Tel Aviv", state = null, country = "Israel", continent = "Middle East", timezone = "Asia/Jerusalem" }
 
     # North America - Canada
-    "northamericanortheast1" = { city = "Montréal", state = "Québec", country = "Canada", continent = "North America", timezone = "America/Montreal" }
-    "northamericanortheast2" = { city = "Toronto", state = "Ontario", country = "Canada", continent = "North America", timezone = "America/Toronto" }
+    "northamericanortheast1" = { city = "Montréal", state = null, country = "Canada", continent = "North America", timezone = "America/Montreal" }
+    "northamericanortheast2" = { city = "Toronto", state = null, country = "Canada", continent = "North America", timezone = "America/Toronto" }
 
     # North America - Mexico
-    "northamericasouth1" = { city = "Queretaro", state = "Querétaro", country = "Mexico", continent = "North America", timezone = "America/Mexico_City" }
+    "northamericasouth1" = { city = "Mexico City", state = null, country = "Mexico", timezone = "America/Monterrey" }
 
     # South America
     "southamericaeast1" = { city = "Osasco", state = "São Paulo", country = "Brazil", continent = "South America", timezone = "America/Sao_Paulo" }
