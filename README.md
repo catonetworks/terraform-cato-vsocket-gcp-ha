@@ -61,7 +61,7 @@ module "vsocket-gcp-ha-vnet" {
 
   lan_network_ip_primary   = "10.3.3.4"
   lan_network_ip_secondary = "10.3.3.5"
-  floating_ip              = "10.3.3.6"
+  load_balancer_ip         = "10.3.3.6"
 
   routed_networks = {
     "Peered-VNET-1" = {
@@ -121,10 +121,10 @@ Apache 2 Licensed. See [LICENSE](https://github.com/catonetworks/terraform-cato-
 
 | Name | Version |
 |------|---------|
-| <a name="provider_cato"></a> [cato](#provider\_cato) | 0.0.46 |
-| <a name="provider_google"></a> [google](#provider\_google) | 7.4.0 |
+| <a name="provider_cato"></a> [cato](#provider\_cato) | ~> 0.0.46 |
+| <a name="provider_google"></a> [google](#provider\_google) | ~> 7.4 |
 | <a name="provider_terraform"></a> [terraform](#provider\_terraform) | n/a |
-| <a name="provider_time"></a> [time](#provider\_time) | 0.13.1 |
+| <a name="provider_time"></a> [time](#provider\_time) | ~> 0.13.1 |
 
 ## Modules
 
@@ -182,7 +182,6 @@ No modules.
 | <a name="input_create_firewall_rule"></a> [create\_firewall\_rule](#input\_create\_firewall\_rule) | Whether to create the firewall rule for lan traffic | `bool` | `true` | no |
 | <a name="input_downstream_bandwidth"></a> [downstream\_bandwidth](#input\_downstream\_bandwidth) | Sockets downstream interface WAN Bandwidth in Mbps | `string` | `"null"` | no |
 | <a name="input_enable_static_range_translation"></a> [enable\_static\_range\_translation](#input\_enable\_static\_range\_translation) | Enables the ability to use translated ranges | `string` | `false` | no |
-| <a name="input_floating_ip"></a> [floating\_ip](#input\_floating\_ip) | LAN floating IP for the site | `string` | n/a | yes |
 | <a name="input_ip_mgmt_name"></a> [ip\_mgmt\_name](#input\_ip\_mgmt\_name) | Management Static IP name | `string` | `null` | no |
 | <a name="input_ip_wan_name"></a> [ip\_wan\_name](#input\_ip\_wan\_name) | WAN Static IP name | `string` | `null` | no |
 | <a name="input_labels"></a> [labels](#input\_labels) | Labels to be appended to GCP resources | `map(string)` | `{}` | no |
@@ -191,6 +190,7 @@ No modules.
 | <a name="input_lan_network_ip_secondary"></a> [lan\_network\_ip\_secondary](#input\_lan\_network\_ip\_secondary) | LAN network IP for Secondary socket | `string` | n/a | yes |
 | <a name="input_license_bw"></a> [license\_bw](#input\_license\_bw) | The license bandwidth number for the cato site, specifying bandwidth ONLY applies for pooled licenses.  For a standard site license that is not pooled, leave this value null. Must be a number greater than 0 and an increment of 10. | `string` | `null` | no |
 | <a name="input_license_id"></a> [license\_id](#input\_license\_id) | The license ID for the Cato vSocket of license type CATO\_SITE, CATO\_SSE\_SITE, CATO\_PB, CATO\_PB\_SSE.  Example License ID value: 'abcde123-abcd-1234-abcd-abcde1234567'.  Note that licenses are for commercial accounts, and not supported for trial accounts. | `string` | `null` | no |
+| <a name="input_load_balancer_ip"></a> [load\_balancer\_ip](#input\_load\_balancer\_ip) | LAN load balancer IP for the site | `string` | n/a | yes |
 | <a name="input_machine_type"></a> [machine\_type](#input\_machine\_type) | Machine type for vSocket instances | `string` | `"n2-standard-4"` | no |
 | <a name="input_mgmt_network_ip_primary"></a> [mgmt\_network\_ip\_primary](#input\_mgmt\_network\_ip\_primary) | Management network IP  for Primary socket | `string` | n/a | yes |
 | <a name="input_mgmt_network_ip_secondary"></a> [mgmt\_network\_ip\_secondary](#input\_mgmt\_network\_ip\_secondary) | Management network IP for Secondary socket | `string` | n/a | yes |

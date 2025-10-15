@@ -13,7 +13,7 @@ response=$(curl -k -X POST \
       "accountId": "${account_id}",
       "addSecondaryGcpVSocketInput": {
         "gcpConfig": {
-          "floatingIp": "${floating_ip}",
+          "loadBalancerIp": "${load_balancer_ip}",
           "interfaceIp": "${interface_ip}"
         },
         "site": {

@@ -278,12 +278,12 @@ variable "lan_network_ip_secondary" {
   }
 }
 
-variable "floating_ip" {
-  description = "LAN floating IP for the site"
+variable "load_balancer_ip" {
+  description = "LAN load balancer IP for the site"
   type        = string
   validation {
-    condition     = can(regex("^([0-9]{1,3}\\.){3}[0-9]{1,3}$", var.floating_ip))
-    error_message = "LAN floating IP must be a valid IPv4 address."
+    condition     = can(regex("^([0-9]{1,3}\\.){3}[0-9]{1,3}$", var.load_balancer_ip))
+    error_message = "LAN load balancer IP must be a valid IPv4 address."
   }
 }
 

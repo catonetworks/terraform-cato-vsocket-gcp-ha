@@ -230,7 +230,7 @@ resource "terraform_data" "configure_secondary_gcp_vsocket" {
       api_token    = var.token
       base_url     = var.baseurl
       account_id   = var.account_id
-      floating_ip  = var.floating_ip
+      load_balancer_ip  = var.load_balancer_ip
       interface_ip = var.lan_network_ip_secondary
       site_id      = cato_socket_site.gcp-site.id
     })
@@ -412,7 +412,7 @@ resource "google_compute_forwarding_rule" "google_compute_forwarding_rule" {
   backend_service       = google_compute_region_backend_service.load-balancer-backend-service.id
   network               = google_compute_network.vpc_lan.id
   subnetwork            = google_compute_subnetwork.subnet_lan.id
-  ip_address            = var.floating_ip
+  ip_address            = var.load_balancer_ip
 }
 
 # Ingress allow rule for health-checks probes to sockets LAN interfaces
