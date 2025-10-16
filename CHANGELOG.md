@@ -9,3 +9,8 @@
 
 ### Features
 - Updated flaotingip param referenced in underlying API to loadbalancerIp
+
+## 0.0.4 (2025-10-16)
+
+### Features
+ - Updated documentation to reflect GCP required permissions
