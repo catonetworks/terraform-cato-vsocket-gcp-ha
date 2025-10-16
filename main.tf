@@ -227,12 +227,12 @@ resource "terraform_data" "configure_secondary_gcp_vsocket" {
     # This command is generated from a template to keep the main file clean.
     # It sends a GraphQL mutation to the Cato API endpoint to configure secondary GCP vSocket.
     command = templatefile("${path.module}/templates/configure_secondary_gcp_vsocket.json.tftpl", {
-      api_token    = var.token
-      base_url     = var.baseurl
-      account_id   = var.account_id
-      load_balancer_ip  = var.load_balancer_ip
-      interface_ip = var.lan_network_ip_secondary
-      site_id      = cato_socket_site.gcp-site.id
+      api_token        = var.token
+      base_url         = var.baseurl
+      account_id       = var.account_id
+      load_balancer_ip = var.load_balancer_ip
+      interface_ip     = var.lan_network_ip_secondary
+      site_id          = cato_socket_site.gcp-site.id
     })
   }
 

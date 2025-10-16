@@ -5,6 +5,7 @@ Terraform module which creates the GCP resources, VPC, Subnets, network interfac
 ## NOTE
 - The current API that the Cato provider is calling requires sequential execution. 
 Cato recommends setting the value to 1. Example call: terraform apply -parallelism=1.
+- This module contains local-exec calls which are written for a unix-like OS.  Running terraform from a CLI other than a unix OS may result in errors. 
 - This module will look up the Cato Site Location information based on the Location of GCP specified.  If you would like to override this behavior, please leverage the below for help finding the correct values.
 - For help with finding exact sytax to match site location for city, state_name, country_name and timezone, please refer to the [cato_siteLocation data source](https://registry.terraform.io/providers/catonetworks/cato/latest/docs/data-sources/siteLocation).
 - For help with finding a license id to assign, please refer to the [cato_licensingInfo data source](https://registry.terraform.io/providers/catonetworks/cato/latest/docs/data-sources/licensingInfo).
@@ -15,6 +16,85 @@ Cato recommends setting the value to 1. Example call: terraform apply -paralleli
 `$ /google-cloud-sdk/install.sh`
 - Run the following to configure the GCP CLI
 `$ gcloud auth application-default login`
+
+## Permissions
+
+<details>
+<summary>GCP Permissions Required (click to expand)</summary>
+
+### Project & Service Usage
+- `resourcemanager.projects.get`
+- `serviceusage.services.get`
+- `serviceusage.services.enable`
+
+### Networks & Subnets
+- `compute.networks.create`
+- `compute.networks.delete`
+- `compute.networks.get`
+- `compute.networks.update`
+- `compute.subnetworks.create`
+- `compute.subnetworks.delete`
+- `compute.subnetworks.get`
+- `compute.subnetworks.update`
+
+### Firewalls
+- `compute.firewalls.create`
+- `compute.firewalls.delete`
+- `compute.firewalls.get`
+- `compute.firewalls.update`
+
+### Addresses (Static Public IPs)
+- `compute.addresses.create`
+- `compute.addresses.delete`
+- `compute.addresses.get`
+
+### Disks
+- `compute.disks.create`
+- `compute.disks.delete`
+- `compute.disks.get`
+- `compute.disks.use`
+
+### Instances (VMs)
+- `compute.instances.create`
+- `compute.instances.delete`
+- `compute.instances.get`
+- `compute.instances.attachDisk`
+- `compute.instances.setMetadata`
+- `compute.instances.setTags`
+- `compute.instances.addAccessConfig`
+- `compute.instances.deleteAccessConfig`
+- `compute.zoneOperations.get`
+- `compute.regionOperations.get`
+- `compute.globalOperations.get`
+
+### Internal Load Balancer (Regional)
+- `compute.forwardingRules.create`
+- `compute.forwardingRules.delete`
+- `compute.forwardingRules.get`
+- `compute.forwardingRules.update`
+- `compute.regionHealthChecks.create`
+- `compute.regionHealthChecks.delete`
+- `compute.regionHealthChecks.get`
+- `compute.regionHealthChecks.update`
+- `compute.regionBackendServices.create`
+- `compute.regionBackendServices.delete`
+- `compute.regionBackendServices.get`
+- `compute.regionBackendServices.update`
+- `compute.networkEndpointGroups.create`
+- `compute.networkEndpointGroups.delete`
+- `compute.networkEndpointGroups.get`
+- `compute.networkEndpointGroups.use`
+- `compute.networkEndpointGroups.attach`
+- `compute.networkEndpointGroups.detach`
+- `compute.networkEndpoints.create`
+
+### Policy-Based Routes
+- `networkconnectivity.policyBasedRoutes.create`
+- `networkconnectivity.policyBasedRoutes.delete`
+- `networkconnectivity.policyBasedRoutes.get`
+- `networkconnectivity.policyBasedRoutes.update`
+
+</details>
 
 ## Usage
 
@@ -121,10 +201,10 @@ Apache 2 Licensed. See [LICENSE](https://github.com/catonetworks/terraform-cato-
 
 | Name | Version |
 |------|---------|
-| <a name="provider_cato"></a> [cato](#provider\_cato) | ~> 0.0.46 |
-| <a name="provider_google"></a> [google](#provider\_google) | ~> 7.4 |
+| <a name="provider_cato"></a> [cato](#provider\_cato) | 0.0.46 |
+| <a name="provider_google"></a> [google](#provider\_google) | 7.4.0 |
 | <a name="provider_terraform"></a> [terraform](#provider\_terraform) | n/a |
-| <a name="provider_time"></a> [time](#provider\_time) | ~> 0.13.1 |
+| <a name="provider_time"></a> [time](#provider\_time) | 0.13.1 |
 
 ## Modules
 

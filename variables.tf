@@ -4,7 +4,7 @@ variable "token" {
   description = "API token used to authenticate with the Cato Networks API."
   type        = string
 
-  sensitive   = true
+  sensitive = true
   validation {
     condition     = can(regex("^[A-Za-z0-9+/]+=*$", var.token)) && length(var.token) >= 16
     error_message = "API token must be a valid base64-encoded string with minimum length of 16 characters."
