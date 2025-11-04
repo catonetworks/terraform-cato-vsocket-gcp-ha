@@ -2,6 +2,10 @@
 
 Terraform module which creates the GCP resources, VPC, Subnets, network interfaces, firewall rules, route-tables, load balancers, etc.  Then creates and configures a Cato Socket Site and brings up two vSockets in HA configuration. 
 
+## MODULE RELEASE DETAIL
+
+The GCP HA feature is corrently in early availability (EA) access, and requires updates to be made to your Cato Management Application (CMA) tenant to enable until the feature is Generally Available (GA).  Please reach out to [ea@catonetworks.com](mailto:ea@catonetworks.com) to have this feature enabled for your account. 
+
 ## NOTE
 - The current API that the Cato provider is calling requires sequential execution. 
 Cato recommends setting the value to 1. Example call: terraform apply -parallelism=1.
