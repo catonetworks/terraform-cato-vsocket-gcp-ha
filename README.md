@@ -4,7 +4,7 @@ Terraform module which creates the GCP resources, VPC, Subnets, network interfac
 
 ## MODULE RELEASE DETAIL
 
-The GCP HA feature is corrently in early availability (EA) access, and requires updates to be made to your Cato Management Application (CMA) tenant to enable until the feature is Generally Available (GA).  Please reach out to [ea@catonetworks.com](mailto:ea@catonetworks.com) to have this feature enabled for your account. 
+The GCP HA feature is currently in early availability (EA) access, and requires updates to be made to your Cato Management Application (CMA) tenant to enable until the feature is Generally Available (GA).  Please reach out to [ea@catonetworks.com](mailto:ea@catonetworks.com) to have this feature enabled for your account. 
 
 ## NOTE
 - The current API that the Cato provider is calling requires sequential execution. 

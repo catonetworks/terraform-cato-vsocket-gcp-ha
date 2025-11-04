@@ -10,7 +10,7 @@
 ### Features
 - Updated flaotingip param referenced in underlying API to loadbalancerIp
 
-## 0.0.4 (2025-11-04)
+## 0.0.5 (2025-11-04)
 
 ### Features
 - Added EA verbiage
