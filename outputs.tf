@@ -118,6 +118,16 @@ output "vpc_lan_name" {
   value       = google_compute_network.vpc_lan.name
 }
 
+output "vpc_lan_id" {
+  description = "ID of the LAN VPC (for use by NCC or other modules that attach to this network)"
+  value       = google_compute_network.vpc_lan.id
+}
+
+output "vpc_lan_self_link" {
+  description = "Self-link of the LAN VPC (for use by NCC or other modules that attach to this network)"
+  value       = google_compute_network.vpc_lan.self_link
+}
+
 output "subnet_mgmt_name" {
   description = "Name of the management subnet"
   value       = google_compute_subnetwork.subnet_mgmt.name
