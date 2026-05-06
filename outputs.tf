@@ -53,42 +53,42 @@ output "primary_vm_wan_public_ip" {
 # Secondary vSocket outputs
 output "secondary_boot_disk_name" {
   description = "Boot disk name for the secondary vSocket VM"
-  value       = google_compute_disk.secondary_boot_disk.name
+  value       = var.ha ? google_compute_disk.secondary_boot_disk[0].name : null
 }
 
 output "secondary_boot_disk_self_link" {
   description = "Self-link for the secondary vSocket boot disk"
-  value       = google_compute_disk.secondary_boot_disk.self_link
+  value       = var.ha ? google_compute_disk.secondary_boot_disk[0].self_link : null
 }
 
 output "secondary_vm_instance_name" {
   description = "Name of the secondary vSocket VM instance"
-  value       = google_compute_instance.secondary_vsocket.name
+  value       = var.ha ? google_compute_instance.secondary_vsocket[0].name : null
 }
 
 output "secondary_vm_mgmt_network_ip" {
   description = "Management network private IP of the secondary vSocket VM"
-  value       = google_compute_instance.secondary_vsocket.network_interface[0].network_ip
+  value       = var.ha ? google_compute_instance.secondary_vsocket[0].network_interface[0].network_ip : null
 }
 
 output "secondary_vm_wan_network_ip" {
   description = "WAN network private IP of the secondary vSocket VM"
-  value       = google_compute_instance.secondary_vsocket.network_interface[1].network_ip
+  value       = var.ha ? google_compute_instance.secondary_vsocket[0].network_interface[1].network_ip : null
 }
 
 output "secondary_vm_lan_network_ip" {
   description = "LAN network private IP of the secondary vSocket VM"
-  value       = google_compute_instance.secondary_vsocket.network_interface[2].network_ip
+  value       = var.ha ? google_compute_instance.secondary_vsocket[0].network_interface[2].network_ip : null
 }
 
 output "secondary_vm_mgmt_public_ip" {
   description = "Management public IP of the secondary vSocket VM if assigned"
-  value       = try(google_compute_instance.secondary_vsocket.network_interface[0].access_config[0].nat_ip, "No Public IP")
+  value       = var.ha ? try(google_compute_instance.secondary_vsocket[0].network_interface[0].access_config[0].nat_ip, "No Public IP") : null
 }
 
 output "secondary_vm_wan_public_ip" {
   description = "WAN public IP of the secondary vSocket VM if assigned"
-  value       = try(google_compute_instance.secondary_vsocket.network_interface[1].access_config[0].nat_ip, "No Public IP")
+  value       = var.ha ? try(google_compute_instance.secondary_vsocket[0].network_interface[1].access_config[0].nat_ip, "No Public IP") : null
 }
 
 # Load Balancer outputs
@@ -156,10 +156,10 @@ output "primary_wan_static_ip" {
 
 output "secondary_mgmt_static_ip" {
   description = "Secondary management static IP address"
-  value       = var.public_ip_mgmt ? google_compute_address.secondary_ip_mgmt[0].address : null
+  value       = var.ha && var.public_ip_mgmt ? google_compute_address.secondary_ip_mgmt[0].address : null
 }
 
 output "secondary_wan_static_ip" {
   description = "Secondary WAN static IP address"
-  value       = var.public_ip_wan ? google_compute_address.secondary_ip_wan[0].address : null
+  value       = var.ha && var.public_ip_wan ? google_compute_address.secondary_ip_wan[0].address : null
 }

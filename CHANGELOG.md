@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Features
+- Added `ha` input (default `true`) to support non-HA single-vSocket deployments.
+- Made secondary vSocket resources conditional on `ha`.
+- Made secondary IP inputs and `load_balancer_ip` optional for non-HA usage.
+
 ## 0.0.2 (2025-09-25)
 
 ### Features

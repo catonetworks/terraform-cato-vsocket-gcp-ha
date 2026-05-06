@@ -54,7 +54,7 @@ resource "google_compute_address" "primary_ip_wan" {
 }
 
 resource "google_compute_address" "secondary_ip_mgmt" {
-  count        = var.public_ip_mgmt ? 1 : 0
+  count        = var.ha && var.public_ip_mgmt ? 1 : 0
   name         = "${local.ip_mgmt_name}-secondary"
   region       = var.region
   network_tier = var.network_tier
@@ -62,7 +62,7 @@ resource "google_compute_address" "secondary_ip_mgmt" {
 }
 
 resource "google_compute_address" "secondary_ip_wan" {
-  count        = var.public_ip_wan ? 1 : 0
+  count        = var.ha && var.public_ip_wan ? 1 : 0
   name         = "${local.ip_wan_name}-secondary"
   region       = var.region
   network_tier = var.network_tier
@@ -124,6 +124,17 @@ resource "cato_socket_site" "gcp-site" {
   }
   site_location = local.cur_site_location
   site_type     = var.site_type
+
+  lifecycle {
+    precondition {
+      condition = !var.ha || (
+        var.mgmt_network_ip_secondary != null &&
+        var.wan_network_ip_secondary != null &&
+        var.lan_network_ip_secondary != null
+      )
+      error_message = "When ha=true, mgmt_network_ip_secondary, wan_network_ip_secondary, and lan_network_ip_secondary must be set."
+    }
+  }
 }
 
 
@@ -221,18 +232,20 @@ resource "time_sleep" "primary_vsocket_upgrade_delay" {
 ## Adding secondary and getting its serial
 # Configure Secondary GCP vSocket via API using terraform_data
 resource "terraform_data" "configure_secondary_gcp_vsocket" {
+  count = var.ha ? 1 : 0
+
   depends_on = [time_sleep.primary_vsocket_upgrade_delay]
 
   provisioner "local-exec" {
     # This command is generated from a template to keep the main file clean.
     # It sends a GraphQL mutation to the Cato API endpoint to configure secondary GCP vSocket.
     command = templatefile("${path.module}/templates/configure_secondary_gcp_vsocket.json.tftpl", {
-      api_token    = var.token
-      base_url     = var.baseurl
-      account_id   = var.account_id
-      load_balancer_ip  = var.load_balancer_ip
-      interface_ip = var.lan_network_ip_secondary
-      site_id      = cato_socket_site.gcp-site.id
+      api_token        = var.token
+      base_url         = var.baseurl
+      account_id       = var.account_id
+      load_balancer_ip = var.load_balancer_ip
+      interface_ip     = var.lan_network_ip_secondary
+      site_id          = cato_socket_site.gcp-site.id
     })
   }
 
@@ -244,6 +257,8 @@ resource "terraform_data" "configure_secondary_gcp_vsocket" {
 
 # Sleep to allow Secondary vSocket serial retrieval
 resource "time_sleep" "secondary_serial_delay" {
+  count = var.ha ? 1 : 0
+
   depends_on      = [terraform_data.configure_secondary_gcp_vsocket]
   create_duration = "30s"
 }
@@ -251,6 +266,8 @@ resource "time_sleep" "secondary_serial_delay" {
 
 # Secondary vSocket boot disk
 resource "google_compute_disk" "secondary_boot_disk" {
+  count = var.ha ? 1 : 0
+
   name   = "${local.secondary_name}-boot-disk"
   type   = "pd-balanced"
   zone   = local.secondary_zone
@@ -261,6 +278,7 @@ resource "google_compute_disk" "secondary_boot_disk" {
 
 # Secondary vSocket VM Instance
 resource "google_compute_instance" "secondary_vsocket" {
+  count        = var.ha ? 1 : 0
   depends_on   = [google_compute_disk.secondary_boot_disk]
   name         = local.secondary_name
   machine_type = var.machine_type
@@ -270,7 +288,7 @@ resource "google_compute_instance" "secondary_vsocket" {
 
   boot_disk {
     auto_delete = true
-    source      = google_compute_disk.secondary_boot_disk.self_link
+    source      = google_compute_disk.secondary_boot_disk[0].self_link
   }
 
   # Management interface
@@ -353,6 +371,8 @@ resource "google_compute_network_endpoint" "primary-neg-endpoint" {
 
 # NEG for Secondary
 resource "google_compute_network_endpoint_group" "secondary_neg" {
+  count = var.ha ? 1 : 0
+
   name                  = "${local.secondary_name}-neg"
   network               = google_compute_network.vpc_lan.id
   subnetwork            = google_compute_subnetwork.subnet_lan.id
@@ -361,8 +381,9 @@ resource "google_compute_network_endpoint_group" "secondary_neg" {
 }
 
 resource "google_compute_network_endpoint" "secondary-neg-endpoint" {
-  network_endpoint_group = google_compute_network_endpoint_group.secondary_neg.name
-  instance               = google_compute_instance.secondary_vsocket.name
+  count                  = var.ha ? 1 : 0
+  network_endpoint_group = google_compute_network_endpoint_group.secondary_neg[0].name
+  instance               = google_compute_instance.secondary_vsocket[0].name
   ip_address             = var.lan_network_ip_secondary
   zone                   = local.secondary_zone
 }
@@ -394,11 +415,14 @@ resource "google_compute_region_backend_service" "load-balancer-backend-service"
   backend {
     balancing_mode = "CONNECTION"
     group          = google_compute_network_endpoint_group.primary_neg.id
-    failover       = true
+    failover       = var.ha
   }
-  backend {
-    balancing_mode = "CONNECTION"
-    group          = google_compute_network_endpoint_group.secondary_neg.id
+  dynamic "backend" {
+    for_each = var.ha ? [1] : []
+    content {
+      balancing_mode = "CONNECTION"
+      group          = google_compute_network_endpoint_group.secondary_neg[0].id
+    }
   }
 }
 
@@ -412,7 +436,7 @@ resource "google_compute_forwarding_rule" "google_compute_forwarding_rule" {
   backend_service       = google_compute_region_backend_service.load-balancer-backend-service.id
   network               = google_compute_network.vpc_lan.id
   subnetwork            = google_compute_subnetwork.subnet_lan.id
-  ip_address            = var.load_balancer_ip
+  ip_address            = local.effective_load_balancer_ip
 }
 
 # Ingress allow rule for health-checks probes to sockets LAN interfaces

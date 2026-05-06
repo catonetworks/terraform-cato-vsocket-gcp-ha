@@ -1,6 +1,8 @@
 # Cato Networks GCP vSocket HA Terraform Module
 
-Terraform module which creates the GCP resources, VPC, Subnets, network interfaces, firewall rules, route-tables, load balancers, etc.  Then creates and configures a Cato Socket Site and brings up two vSockets in HA configuration. 
+Terraform module which creates the GCP resources, VPC, Subnets, network interfaces, firewall rules, route-tables, load balancers, etc. It creates and configures a Cato Socket Site and can deploy either:
+- two vSockets in HA mode (`ha = true`, default), or
+- a single vSocket in non-HA mode (`ha = false`).
 
 ## MODULE RELEASE DETAIL
 
@@ -52,20 +54,21 @@ module "vsocket-gcp-ha-vnet" {
   site_name        = "<Cato-Site-Name>"
   site_description = "<Cato-Site-Description>"
   region           = var.region
+  ha               = true # default; set false for non-HA
 
   subnet_mgmt_cidr = "10.3.1.0/24"
   subnet_wan_cidr  = "10.3.2.0/24"
   subnet_lan_cidr  = "10.3.3.0/24"
 
-  mgmt_network_ip_primary   = "10.3.1.4"
-  mgmt_network_ip_secondary = "10.3.1.5"
+  mgmt_network_ip_primary = "10.3.1.4"
+  # mgmt_network_ip_secondary = "10.3.1.5" # HA only
 
-  wan_network_ip_primary   = "10.3.2.4"
-  wan_network_ip_secondary = "10.3.2.5"
+  wan_network_ip_primary = "10.3.2.4"
+  # wan_network_ip_secondary = "10.3.2.5" # HA only
 
-  lan_network_ip_primary   = "10.3.3.4"
-  lan_network_ip_secondary = "10.3.3.5"
-  load_balancer_ip         = "10.3.3.6"
+  lan_network_ip_primary = "10.3.3.4"
+  # lan_network_ip_secondary = "10.3.3.5" # HA only
+  # load_balancer_ip         = "10.3.3.6" # optional; defaults to 6th host in LAN subnet
 
   routed_networks = {
     "Peered-VNET-1" = {
