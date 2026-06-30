@@ -138,10 +138,10 @@ No modules.
 
 | Name | Type |
 | ---- | ---- |
-| [cato_license.license](https://registry.terraform.io/providers/catonetworks/cato/0.0.57-1/docs/resources/license) | resource |
-| [cato_network_range.routedgcp](https://registry.terraform.io/providers/catonetworks/cato/0.0.57-1/docs/resources/network_range) | resource |
-| [cato_socket_site.gcp-site](https://registry.terraform.io/providers/catonetworks/cato/0.0.57-1/docs/resources/socket_site) | resource |
-| [cato_wan_interface.wan](https://registry.terraform.io/providers/catonetworks/cato/0.0.57-1/docs/resources/wan_interface) | resource |
+| [cato_license.license](https://registry.terraform.io/providers/catonetworks/cato/0.0.88/docs/resources/license) | resource |
+| [cato_network_range.routedgcp](https://registry.terraform.io/providers/catonetworks/cato/0.0.88/docs/resources/network_range) | resource |
+| [cato_socket_site.gcp-site](https://registry.terraform.io/providers/catonetworks/cato/0.0.88/docs/resources/socket_site) | resource |
+| [cato_wan_interface.wan](https://registry.terraform.io/providers/catonetworks/cato/0.0.88/docs/resources/wan_interface) | resource |
 | [google_compute_address.primary_ip_mgmt](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_address) | resource |
 | [google_compute_address.primary_ip_wan](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_address) | resource |
 | [google_compute_address.secondary_ip_mgmt](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_address) | resource |
@@ -171,9 +171,9 @@ No modules.
 | [time_sleep.primary_vsocket_upgrade_delay](https://registry.terraform.io/providers/hashicorp/time/latest/docs/resources/sleep) | resource |
 | [time_sleep.secondary_serial_delay](https://registry.terraform.io/providers/hashicorp/time/latest/docs/resources/sleep) | resource |
 | [time_sleep.site_destroy_delay](https://registry.terraform.io/providers/hashicorp/time/latest/docs/resources/sleep) | resource |
-| [cato_accountSnapshotSite.gcp-site](https://registry.terraform.io/providers/catonetworks/cato/0.0.57-1/docs/data-sources/accountSnapshotSite) | data source |
-| [cato_accountSnapshotSite.gcp-site-for-secondary](https://registry.terraform.io/providers/catonetworks/cato/0.0.57-1/docs/data-sources/accountSnapshotSite) | data source |
-| [cato_siteLocation.site_location](https://registry.terraform.io/providers/catonetworks/cato/0.0.57-1/docs/data-sources/siteLocation) | data source |
+| [cato_accountSnapshotSite.gcp-site](https://registry.terraform.io/providers/catonetworks/cato/0.0.88/docs/data-sources/accountSnapshotSite) | data source |
+| [cato_accountSnapshotSite.gcp-site-for-secondary](https://registry.terraform.io/providers/catonetworks/cato/0.0.88/docs/data-sources/accountSnapshotSite) | data source |
+| [cato_siteLocation.site_location](https://registry.terraform.io/providers/catonetworks/cato/0.0.88/docs/data-sources/siteLocation) | data source |
 
 ## Inputs
 
