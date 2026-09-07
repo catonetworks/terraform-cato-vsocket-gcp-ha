@@ -1,0 +1,32 @@
+response=$(curl -fsS -X POST \
+  -H "Accept: application/json" \
+  -H "Content-Type: application/json" \
+  -H "x-API-Key: $${CATO_API_KEY}" \
+  "${base_url}" \
+  --data '{
+    "query": "mutation updateHa($accountId: ID!, $siteId: ID!, $input: UpdateHaInput!) { site(accountId: $accountId) { updateHa(siteId: $siteId, input: $input) { siteId } } }",
+    "variables": {
+      "accountId": "${account_id}",
+      "siteId": "${site_id}",
+      "input": {
+        "isCloudRouter": true
+      }
+    },
+    "operationName": "updateHa"
+  }') || {
+  echo "Cato updateHa request failed" >&2
+  exit 1
+}
+
+case "$response" in
+  *'"errors"'*)
+    echo "Cato updateHa returned an error" >&2
+    exit 1
+    ;;
+  *'"siteId"'*)
+    ;;
+  *)
+    echo "Cato updateHa returned an unexpected response" >&2
+    exit 1
+    ;;
+esac
