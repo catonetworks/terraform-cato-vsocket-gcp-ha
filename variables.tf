@@ -101,6 +101,12 @@ variable "ha" {
   default     = true
 }
 
+variable "configure_cloud_router_bgp" {
+  description = "Apply the Cato Cloud Router HA setting before booting the sockets."
+  type        = bool
+  default     = false
+}
+
 variable "vpc_mgmt_name" {
   description = "Management VPC name"
   type        = string
@@ -310,10 +316,10 @@ variable "lan_firewall_rule_name" {
   description = "Name of the firewall rule (1-63 chars, lowercase letters, numbers, or hyphens)"
   type        = string
   validation {
-    condition     = can(regex("^[a-z][a-z0-9-]{0,61}[a-z0-9]$", var.lan_firewall_rule_name))
+    condition     = var.lan_firewall_rule_name == null || can(regex("^[a-z][a-z0-9-]{0,61}[a-z0-9]$", var.lan_firewall_rule_name))
     error_message = "Firewall rule name must be 1-63 characters, start with a letter, and contain only lowercase letters, numbers, or hyphens."
   }
-  default = "allow-private-ranges-traffic-in-lan-subnet-fw-rule"
+  default = null
 }
 
 variable "create_firewall_rule" {

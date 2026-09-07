@@ -134,19 +134,51 @@ resource "cato_socket_site" "gcp-site" {
       )
       error_message = "When ha=true, mgmt_network_ip_secondary, wan_network_ip_secondary, and lan_network_ip_secondary must be set."
     }
+    precondition {
+      condition     = !var.ha || var.load_balancer_ip != null
+      error_message = "load_balancer_ip must be set when ha=true because the secondary GCP vSocket API requires the HA load-balancer VIP."
+    }
+  }
+}
+
+# Apply the Cato HA Cloud Router setting after the secondary socket is
+# registered, because updateHa rejects sites that are not configured for HA.
+resource "terraform_data" "configure_ha" {
+  count = var.ha && var.configure_cloud_router_bgp ? 1 : 0
+
+  depends_on = [terraform_data.configure_secondary_gcp_vsocket]
+
+  provisioner "local-exec" {
+    command = templatefile("${path.module}/templates/update_ha.json.tftpl", {
+      account_id = var.account_id
+      base_url   = var.baseurl
+      site_id    = cato_socket_site.gcp-site.id
+    })
+
+    environment = {
+      CATO_API_KEY = var.token
+    }
+  }
+
+  triggers_replace = {
+    account_id = var.account_id
+    site_id    = cato_socket_site.gcp-site.id
   }
 }
 
 
 # Primary vSocket boot disk
 resource "google_compute_disk" "primary_boot_disk" {
-  depends_on = [cato_socket_site.gcp-site, time_sleep.site_destroy_delay]
-  name       = "${local.primary_name}-boot-disk"
-  type       = "pd-balanced"
-  zone       = local.primary_zone
-  size       = var.boot_disk_size
-  image      = var.boot_disk_image
-  labels     = var.labels
+  depends_on = [
+    cato_socket_site.gcp-site,
+    time_sleep.site_destroy_delay,
+  ]
+  name   = "${local.primary_name}-boot-disk"
+  type   = "pd-balanced"
+  zone   = local.primary_zone
+  size   = var.boot_disk_size
+  image  = var.boot_disk_image
+  labels = var.labels
 }
 
 # Primary vSocket VM Instance
@@ -267,6 +299,8 @@ resource "time_sleep" "secondary_serial_delay" {
 # Secondary vSocket boot disk
 resource "google_compute_disk" "secondary_boot_disk" {
   count = var.ha ? 1 : 0
+
+  depends_on = [terraform_data.configure_ha]
 
   name   = "${local.secondary_name}-boot-disk"
   type   = "pd-balanced"
