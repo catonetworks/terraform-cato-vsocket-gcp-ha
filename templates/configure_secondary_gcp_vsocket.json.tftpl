@@ -5,8 +5,8 @@
 response=$(curl -k -X POST \
   -H "Accept: application/json" \
   -H "Content-Type: application/json" \
-  -H "x-API-Key: ${api_token}" \
-  "${base_url}" \
+  -H "x-API-Key: $CATO_TOKEN" \
+  "$BASEURL" \
   --data '{
     "query": "mutation siteAddSecondaryGcpVSocket($accountId: ID!, $addSecondaryGcpVSocketInput: AddSecondaryGcpVSocketInput!) { site(accountId: $accountId) { addSecondaryGcpVSocket(input: $addSecondaryGcpVSocketInput) { socketInfo { id } } } }",
     "variables": {

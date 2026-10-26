@@ -224,11 +224,14 @@ resource "terraform_data" "configure_secondary_gcp_vsocket" {
   depends_on = [time_sleep.primary_vsocket_upgrade_delay]
 
   provisioner "local-exec" {
+    environment = {
+      CATO_TOKEN   = var.token
+      BASEURL      = var.baseurl
+    }
+
     # This command is generated from a template to keep the main file clean.
     # It sends a GraphQL mutation to the Cato API endpoint to configure secondary GCP vSocket.
     command = templatefile("${path.module}/templates/configure_secondary_gcp_vsocket.json.tftpl", {
-      api_token    = var.token
-      base_url     = var.baseurl
       account_id   = var.account_id
       load_balancer_ip  = var.load_balancer_ip
       interface_ip = var.lan_network_ip_secondary
