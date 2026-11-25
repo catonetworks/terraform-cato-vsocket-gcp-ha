@@ -54,7 +54,7 @@ resource "google_compute_address" "primary_ip_wan" {
 }
 
 resource "google_compute_address" "secondary_ip_mgmt" {
-  count        = var.public_ip_mgmt ? 1 : 0
+  count        = var.ha && var.public_ip_mgmt ? 1 : 0
   name         = "${local.ip_mgmt_name}-secondary"
   region       = var.region
   network_tier = var.network_tier
@@ -62,7 +62,7 @@ resource "google_compute_address" "secondary_ip_mgmt" {
 }
 
 resource "google_compute_address" "secondary_ip_wan" {
-  count        = var.public_ip_wan ? 1 : 0
+  count        = var.ha && var.public_ip_wan ? 1 : 0
   name         = "${local.ip_wan_name}-secondary"
   region       = var.region
   network_tier = var.network_tier
@@ -124,18 +124,66 @@ resource "cato_socket_site" "gcp-site" {
   }
   site_location = local.cur_site_location
   site_type     = var.site_type
+
+  lifecycle {
+    precondition {
+      condition = !var.ha || (
+        var.mgmt_network_ip_secondary != null &&
+        var.wan_network_ip_secondary != null &&
+        var.lan_network_ip_secondary != null
+      )
+      error_message = "When ha=true, mgmt_network_ip_secondary, wan_network_ip_secondary, and lan_network_ip_secondary must be set."
+    }
+    precondition {
+      condition     = !var.configure_cloud_router_bgp || var.ha
+      error_message = "configure_cloud_router_bgp requires ha=true."
+    }
+  }
+}
+
+# Apply the Cato HA Cloud Router setting after adding the secondary vSocket
+# to the site's HA configuration.
+resource "terraform_data" "configure_ha" {
+  count = var.ha && var.configure_cloud_router_bgp ? 1 : 0
+
+  depends_on = [terraform_data.configure_secondary_gcp_vsocket]
+
+  provisioner "local-exec" {
+    command = file("${path.module}/templates/update_ha.json.tftpl")
+    environment = {
+      CATO_API_KEY  = var.token
+      CATO_BASE_URL = var.baseurl
+      CATO_REQUEST = jsonencode({
+        query = "mutation updateHa($accountId: ID!, $siteId: ID!, $input: UpdateHaInput!) { site(accountId: $accountId) { updateHa(siteId: $siteId, input: $input) { siteId } } }"
+        variables = {
+          accountId = var.account_id
+          siteId    = cato_socket_site.gcp-site.id
+          input     = { isCloudRouter = true }
+        }
+        operationName = "updateHa"
+      })
+    }
+  }
+
+  triggers_replace = {
+    account_id = var.account_id
+    site_id    = cato_socket_site.gcp-site.id
+  }
 }
 
 
 # Primary vSocket boot disk
 resource "google_compute_disk" "primary_boot_disk" {
-  depends_on = [cato_socket_site.gcp-site, time_sleep.site_destroy_delay]
-  name       = "${local.primary_name}-boot-disk"
-  type       = "pd-balanced"
-  zone       = local.primary_zone
-  size       = var.boot_disk_size
-  image      = var.boot_disk_image
-  labels     = var.labels
+  depends_on = [
+    cato_socket_site.gcp-site,
+    time_sleep.site_destroy_delay,
+  ]
+  name   = "${local.primary_name}-boot-disk"
+  type   = "pd-balanced"
+  zone   = local.primary_zone
+  size   = var.boot_disk_size
+  image  = var.boot_disk_image
+  labels = var.labels
 }
 
 # Primary vSocket VM Instance
@@ -221,22 +269,36 @@ resource "time_sleep" "primary_vsocket_upgrade_delay" {
 ## Adding secondary and getting its serial
 # Configure Secondary GCP vSocket via API using terraform_data
 resource "terraform_data" "configure_secondary_gcp_vsocket" {
+  count = var.ha ? 1 : 0
+
   depends_on = [time_sleep.primary_vsocket_upgrade_delay]
 
   provisioner "local-exec" {
     environment = {
-      CATO_TOKEN   = var.token
-      BASEURL      = var.baseurl
+      CATO_API_KEY  = var.token
+      CATO_BASE_URL = var.baseurl
+      CATO_REQUEST = jsonencode({
+        query = "mutation siteAddSecondaryGcpVSocket($accountId: ID!, $addSecondaryGcpVSocketInput: AddSecondaryGcpVSocketInput!) { site(accountId: $accountId) { addSecondaryGcpVSocket(input: $addSecondaryGcpVSocketInput) { socketInfo { id } } } }"
+        variables = {
+          accountId = var.account_id
+          addSecondaryGcpVSocketInput = {
+            gcpConfig = {
+              loadBalancerIp = local.effective_load_balancer_ip
+              interfaceIp    = var.lan_network_ip_secondary
+            }
+            site = {
+              by    = "ID"
+              input = cato_socket_site.gcp-site.id
+            }
+          }
+        }
+        operationName = "siteAddSecondaryGcpVSocket"
+      })
     }
 
     # This command is generated from a template to keep the main file clean.
     # It sends a GraphQL mutation to the Cato API endpoint to configure secondary GCP vSocket.
-    command = templatefile("${path.module}/templates/configure_secondary_gcp_vsocket.json.tftpl", {
-      account_id   = var.account_id
-      load_balancer_ip  = var.load_balancer_ip
-      interface_ip = var.lan_network_ip_secondary
-      site_id      = cato_socket_site.gcp-site.id
-    })
+    command = file("${path.module}/templates/configure_secondary_gcp_vsocket.json.tftpl")
   }
 
   triggers_replace = {
@@ -247,6 +309,8 @@ resource "terraform_data" "configure_secondary_gcp_vsocket" {
 
 # Sleep to allow Secondary vSocket serial retrieval
 resource "time_sleep" "secondary_serial_delay" {
+  count = var.ha ? 1 : 0
+
   depends_on      = [terraform_data.configure_secondary_gcp_vsocket]
   create_duration = "30s"
 }
@@ -254,6 +318,10 @@ resource "time_sleep" "secondary_serial_delay" {
 
 # Secondary vSocket boot disk
 resource "google_compute_disk" "secondary_boot_disk" {
+  count = var.ha ? 1 : 0
+
+  depends_on = [terraform_data.configure_ha]
+
   name   = "${local.secondary_name}-boot-disk"
   type   = "pd-balanced"
   zone   = local.secondary_zone
@@ -264,6 +332,7 @@ resource "google_compute_disk" "secondary_boot_disk" {
 
 # Secondary vSocket VM Instance
 resource "google_compute_instance" "secondary_vsocket" {
+  count        = var.ha ? 1 : 0
   depends_on   = [google_compute_disk.secondary_boot_disk]
   name         = local.secondary_name
   machine_type = var.machine_type
@@ -273,7 +342,7 @@ resource "google_compute_instance" "secondary_vsocket" {
 
   boot_disk {
     auto_delete = true
-    source      = google_compute_disk.secondary_boot_disk.self_link
+    source      = google_compute_disk.secondary_boot_disk[0].self_link
   }
 
   # Management interface
@@ -356,6 +425,8 @@ resource "google_compute_network_endpoint" "primary-neg-endpoint" {
 
 # NEG for Secondary
 resource "google_compute_network_endpoint_group" "secondary_neg" {
+  count = var.ha ? 1 : 0
+
   name                  = "${local.secondary_name}-neg"
   network               = google_compute_network.vpc_lan.id
   subnetwork            = google_compute_subnetwork.subnet_lan.id
@@ -364,8 +435,9 @@ resource "google_compute_network_endpoint_group" "secondary_neg" {
 }
 
 resource "google_compute_network_endpoint" "secondary-neg-endpoint" {
-  network_endpoint_group = google_compute_network_endpoint_group.secondary_neg.name
-  instance               = google_compute_instance.secondary_vsocket.name
+  count                  = var.ha ? 1 : 0
+  network_endpoint_group = google_compute_network_endpoint_group.secondary_neg[0].name
+  instance               = google_compute_instance.secondary_vsocket[0].name
   ip_address             = var.lan_network_ip_secondary
   zone                   = local.secondary_zone
 }
@@ -397,11 +469,14 @@ resource "google_compute_region_backend_service" "load-balancer-backend-service"
   backend {
     balancing_mode = "CONNECTION"
     group          = google_compute_network_endpoint_group.primary_neg.id
-    failover       = true
+    failover       = var.ha
   }
-  backend {
-    balancing_mode = "CONNECTION"
-    group          = google_compute_network_endpoint_group.secondary_neg.id
+  dynamic "backend" {
+    for_each = var.ha ? [1] : []
+    content {
+      balancing_mode = "CONNECTION"
+      group          = google_compute_network_endpoint_group.secondary_neg[0].id
+    }
   }
 }
 
@@ -415,7 +490,7 @@ resource "google_compute_forwarding_rule" "google_compute_forwarding_rule" {
   backend_service       = google_compute_region_backend_service.load-balancer-backend-service.id
   network               = google_compute_network.vpc_lan.id
   subnetwork            = google_compute_subnetwork.subnet_lan.id
-  ip_address            = var.load_balancer_ip
+  ip_address            = local.effective_load_balancer_ip
 }
 
 # Ingress allow rule for health-checks probes to sockets LAN interfaces
