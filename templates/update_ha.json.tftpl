@@ -1,0 +1,17 @@
+set -eu
+response=$(curl --fail-with-body --silent --show-error --connect-timeout 30 --max-time 120 \
+  -H "Accept: application/json" -H "Content-Type: application/json" \
+  -H "x-API-Key: ${CATO_API_KEY}" "${CATO_BASE_URL}" --data "${CATO_REQUEST}") || {
+  echo "Cato API request failed" >&2
+  exit 1
+}
+printf '%s' "$response" | python3 -c '
+import json, sys
+try:
+    response = json.load(sys.stdin)
+    result = response.get("data", {}).get("site", {}).get("updateHa", {})
+    if response.get("errors") or not result.get("siteId"):
+        raise ValueError("unsuccessful mutation")
+except (ValueError, TypeError, AttributeError):
+    sys.exit("Cato API returned an unsuccessful mutation")
+'

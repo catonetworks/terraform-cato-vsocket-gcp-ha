@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Features
+- Added `ha` input (default `true`) to support non-HA single-vSocket deployments.
+- Made secondary vSocket resources conditional on `ha`.
+- Made secondary IP inputs and `load_balancer_ip` optional for non-HA usage.
+- Added an option to enable Cloud Router mode after configuring the secondary vSocket.
+
 ## 0.0.8 (2026-06-30)
 
 ### Changed
@@ -13,7 +21,6 @@
 - Removed `site_location_debug` output; replaced with `site_location` output exposing the resolved location
 
 ## 0.0.6 (2026-02-18)
-
 ### Features
 - Reverted to provider version 0.0.57 to address local_ip and gateway api param issue in state
 

@@ -1,6 +1,8 @@
 # Cato Networks GCP vSocket HA Terraform Module
 
-Terraform module which creates the GCP resources, VPC, Subnets, network interfaces, firewall rules, route-tables, load balancers, etc.  Then creates and configures a Cato Socket Site and brings up two vSockets in HA configuration. 
+Terraform module which creates the GCP resources, VPC, Subnets, network interfaces, firewall rules, route-tables, load balancers, etc. It creates and configures a Cato Socket Site and can deploy either:
+- two vSockets in HA mode (`ha = true`, default), or
+- a single vSocket in non-HA mode (`ha = false`).
 
 ## MODULE RELEASE DETAIL
 
@@ -13,6 +15,7 @@ Cato recommends setting the value to 1. Example call: terraform apply -paralleli
 - For help with finding exact sytax to match site location for city, state_name, country_name and timezone, please refer to the [cato_siteLocation data source](https://registry.terraform.io/providers/catonetworks/cato/latest/docs/data-sources/siteLocation).
 - For help with finding a license id to assign, please refer to the [cato_licensingInfo data source](https://registry.terraform.io/providers/catonetworks/cato/latest/docs/data-sources/licensingInfo).
 - For Translated Ranges, "Enable Static Range Translation" but be enabled for more information please refer to [Configuring System Settings for the Account](https://support.catonetworks.com/hc/en-us/articles/4413280536849-Configuring-System-Settings-for-the-Account)
+- Set `configure_cloud_router_bgp = true` to enable Cloud Router mode for an HA site. The module applies the Cato `updateHa` setting after configuring the secondary vSocket and before creating its VM. The API key must be authorized to update HA settings.
 
 ## Pre-reqs
 - Install the [Google Cloud Platform CLI](https://cloud.google.com/sdk/docs/install)
@@ -52,6 +55,8 @@ module "vsocket-gcp-ha-vnet" {
   site_name        = "<Cato-Site-Name>"
   site_description = "<Cato-Site-Description>"
   region           = var.region
+  ha               = true # default; set false for non-HA
+  configure_cloud_router_bgp = true # optional; enables Cloud Router mode
 
   subnet_mgmt_cidr = "10.3.1.0/24"
   subnet_wan_cidr  = "10.3.2.0/24"
@@ -65,7 +70,7 @@ module "vsocket-gcp-ha-vnet" {
 
   lan_network_ip_primary   = "10.3.3.4"
   lan_network_ip_secondary = "10.3.3.5"
-  load_balancer_ip         = "10.3.3.6"
+  # load_balancer_ip       = "10.3.3.6" # optional; defaults to 6th host in LAN subnet
 
   routed_networks = {
     "Peered-VNET-1" = {
@@ -116,7 +121,7 @@ Apache 2 Licensed. See [LICENSE](https://github.com/catonetworks/terraform-cato-
 | Name | Version |
 | ---- | ------- |
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.5 |
-| <a name="requirement_cato"></a> [cato](#requirement\_cato) | 0.0.57-1 |
+| <a name="requirement_cato"></a> [cato](#requirement\_cato) | >= 0.0.88 |
 | <a name="requirement_google"></a> [google](#requirement\_google) | ~> 7.4 |
 | <a name="requirement_null"></a> [null](#requirement\_null) | ~> 3.2 |
 | <a name="requirement_time"></a> [time](#requirement\_time) | ~> 0.13.1 |
@@ -125,7 +130,7 @@ Apache 2 Licensed. See [LICENSE](https://github.com/catonetworks/terraform-cato-
 
 | Name | Version |
 | ---- | ------- |
-| <a name="provider_cato"></a> [cato](#provider\_cato) | 0.0.57-1 |
+| <a name="provider_cato"></a> [cato](#provider\_cato) | >= 0.0.88 |
 | <a name="provider_google"></a> [google](#provider\_google) | ~> 7.4 |
 | <a name="provider_terraform"></a> [terraform](#provider\_terraform) | n/a |
 | <a name="provider_time"></a> [time](#provider\_time) | ~> 0.13.1 |
@@ -168,6 +173,7 @@ No modules.
 | [google_network_connectivity_policy_based_route.route_lan_to_socket](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/network_connectivity_policy_based_route) | resource |
 | [google_network_connectivity_policy_based_route.route_skip_socket](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/network_connectivity_policy_based_route) | resource |
 | [terraform_data.configure_secondary_gcp_vsocket](https://registry.terraform.io/providers/hashicorp/terraform/latest/docs/resources/data) | resource |
+| [terraform_data.configure_ha](https://registry.terraform.io/providers/hashicorp/terraform/latest/docs/resources/data) | resource |
 | [time_sleep.primary_vsocket_upgrade_delay](https://registry.terraform.io/providers/hashicorp/time/latest/docs/resources/sleep) | resource |
 | [time_sleep.secondary_serial_delay](https://registry.terraform.io/providers/hashicorp/time/latest/docs/resources/sleep) | resource |
 | [time_sleep.site_destroy_delay](https://registry.terraform.io/providers/hashicorp/time/latest/docs/resources/sleep) | resource |
@@ -183,21 +189,23 @@ No modules.
 | <a name="input_baseurl"></a> [baseurl](#input\_baseurl) | Base URL for the Cato Networks API. | `string` | `"https://api.catonetworks.com/api/v1/graphql2"` | no |
 | <a name="input_boot_disk_image"></a> [boot\_disk\_image](#input\_boot\_disk\_image) | Boot disk image for vSocket instances | `string` | `"projects/cato-vsocket-production/global/images/gcp-socket-image-v22-0-19207"` | no |
 | <a name="input_boot_disk_size"></a> [boot\_disk\_size](#input\_boot\_disk\_size) | Boot disk size in GB (minimum 10 GB) | `number` | `20` | no |
+| <a name="input_configure_cloud_router_bgp"></a> [configure\_cloud\_router\_bgp](#input\_configure\_cloud\_router\_bgp) | Apply the Cato Cloud Router HA setting after configuring the secondary vSocket. | `bool` | `false` | no |
 | <a name="input_create_firewall_rule"></a> [create\_firewall\_rule](#input\_create\_firewall\_rule) | Whether to create the firewall rule for lan traffic | `bool` | `true` | no |
 | <a name="input_downstream_bandwidth"></a> [downstream\_bandwidth](#input\_downstream\_bandwidth) | Sockets downstream interface WAN Bandwidth in Mbps | `string` | `"null"` | no |
 | <a name="input_enable_static_range_translation"></a> [enable\_static\_range\_translation](#input\_enable\_static\_range\_translation) | Enables the ability to use translated ranges | `string` | `false` | no |
+| <a name="input_ha"></a> [ha](#input\_ha) | Deploy in HA mode (primary+secondary). Set false for non-HA single vSocket. | `bool` | `true` | no |
 | <a name="input_ip_mgmt_name"></a> [ip\_mgmt\_name](#input\_ip\_mgmt\_name) | Management Static IP name | `string` | `null` | no |
 | <a name="input_ip_wan_name"></a> [ip\_wan\_name](#input\_ip\_wan\_name) | WAN Static IP name | `string` | `null` | no |
 | <a name="input_labels"></a> [labels](#input\_labels) | Labels to be appended to GCP resources | `map(string)` | `{}` | no |
-| <a name="input_lan_firewall_rule_name"></a> [lan\_firewall\_rule\_name](#input\_lan\_firewall\_rule\_name) | Name of the firewall rule (1-63 chars, lowercase letters, numbers, or hyphens) | `string` | `"allow-private-ranges-traffic-in-lan-subnet-fw-rule"` | no |
+| <a name="input_lan_firewall_rule_name"></a> [lan\_firewall\_rule\_name](#input\_lan\_firewall\_rule\_name) | Name of the firewall rule (1-63 chars, lowercase letters, numbers, or hyphens) | `string` | `null` (defaults to a site-scoped name) | no |
 | <a name="input_lan_network_ip_primary"></a> [lan\_network\_ip\_primary](#input\_lan\_network\_ip\_primary) | LAN network IP for Primary socket | `string` | n/a | yes |
-| <a name="input_lan_network_ip_secondary"></a> [lan\_network\_ip\_secondary](#input\_lan\_network\_ip\_secondary) | LAN network IP for Secondary socket | `string` | n/a | yes |
+| <a name="input_lan_network_ip_secondary"></a> [lan\_network\_ip\_secondary](#input\_lan\_network\_ip\_secondary) | LAN network IP for Secondary socket | `string` | `null` | no |
 | <a name="input_license_bw"></a> [license\_bw](#input\_license\_bw) | The license bandwidth number for the cato site, specifying bandwidth ONLY applies for pooled licenses.  For a standard site license that is not pooled, leave this value null. Must be a number greater than 0 and an increment of 10. | `string` | `null` | no |
 | <a name="input_license_id"></a> [license\_id](#input\_license\_id) | The license ID for the Cato vSocket of license type CATO\_SITE, CATO\_SSE\_SITE, CATO\_PB, CATO\_PB\_SSE.  Example License ID value: 'abcde123-abcd-1234-abcd-abcde1234567'.  Note that licenses are for commercial accounts, and not supported for trial accounts. | `string` | `null` | no |
-| <a name="input_load_balancer_ip"></a> [load\_balancer\_ip](#input\_load\_balancer\_ip) | LAN load balancer IP for the site | `string` | n/a | yes |
+| <a name="input_load_balancer_ip"></a> [load\_balancer\_ip](#input\_load\_balancer\_ip) | LAN load balancer IP for the site | `string` | `null` | no |
 | <a name="input_machine_type"></a> [machine\_type](#input\_machine\_type) | Machine type for vSocket instances | `string` | `"n2-standard-4"` | no |
 | <a name="input_mgmt_network_ip_primary"></a> [mgmt\_network\_ip\_primary](#input\_mgmt\_network\_ip\_primary) | Management network IP  for Primary socket | `string` | n/a | yes |
-| <a name="input_mgmt_network_ip_secondary"></a> [mgmt\_network\_ip\_secondary](#input\_mgmt\_network\_ip\_secondary) | Management network IP for Secondary socket | `string` | n/a | yes |
+| <a name="input_mgmt_network_ip_secondary"></a> [mgmt\_network\_ip\_secondary](#input\_mgmt\_network\_ip\_secondary) | Management network IP for Secondary socket | `string` | `null` | no |
 | <a name="input_network_tier"></a> [network\_tier](#input\_network\_tier) | Network tier for the public IP | `string` | `"STANDARD"` | no |
 | <a name="input_primary_zone"></a> [primary\_zone](#input\_primary\_zone) | GCP Zone of Primary vSocket | `string` | `null` | no |
 | <a name="input_public_ip_mgmt"></a> [public\_ip\_mgmt](#input\_public\_ip\_mgmt) | Whether to assign the existing static IP to management interface. If false, no public IP will be assigned. | `bool` | `true` | no |
@@ -223,7 +231,7 @@ No modules.
 | <a name="input_vpc_mgmt_name"></a> [vpc\_mgmt\_name](#input\_vpc\_mgmt\_name) | Management VPC name | `string` | `null` | no |
 | <a name="input_vpc_wan_name"></a> [vpc\_wan\_name](#input\_vpc\_wan\_name) | WAN VPC name | `string` | `null` | no |
 | <a name="input_wan_network_ip_primary"></a> [wan\_network\_ip\_primary](#input\_wan\_network\_ip\_primary) | WAN network IP for Primary socket | `string` | n/a | yes |
-| <a name="input_wan_network_ip_secondary"></a> [wan\_network\_ip\_secondary](#input\_wan\_network\_ip\_secondary) | WAN network IP for Secondary socket | `string` | n/a | yes |
+| <a name="input_wan_network_ip_secondary"></a> [wan\_network\_ip\_secondary](#input\_wan\_network\_ip\_secondary) | WAN network IP for Secondary socket | `string` | `null` | no |
 
 ## Outputs
 

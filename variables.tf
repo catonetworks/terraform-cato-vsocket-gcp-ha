@@ -4,11 +4,7 @@ variable "token" {
   description = "API token used to authenticate with the Cato Networks API."
   type        = string
 
-  sensitive   = true
-  validation {
-    condition     = can(regex("^[A-Za-z0-9+/]+=*$", var.token)) && length(var.token) >= 16
-    error_message = "API token must be a valid base64-encoded string with minimum length of 16 characters."
-  }
+  sensitive = true
 }
 
 variable "account_id" {
@@ -97,6 +93,18 @@ variable "secondary_zone" {
   description = "GCP Zone of Secondary vSocket"
   type        = string
   default     = null
+}
+
+variable "ha" {
+  description = "Deploy in HA mode (primary+secondary). Set false for non-HA single vSocket."
+  type        = bool
+  default     = true
+}
+
+variable "configure_cloud_router_bgp" {
+  description = "Apply the Cato Cloud Router HA setting after configuring the secondary vSocket."
+  type        = bool
+  default     = false
 }
 
 variable "vpc_mgmt_name" {
@@ -254,8 +262,9 @@ variable "lan_network_ip_primary" {
 variable "mgmt_network_ip_secondary" {
   description = "Management network IP for Secondary socket"
   type        = string
+  default     = null
   validation {
-    condition     = can(regex("^([0-9]{1,3}\\.){3}[0-9]{1,3}$", var.mgmt_network_ip_secondary))
+    condition     = var.mgmt_network_ip_secondary == null || can(regex("^([0-9]{1,3}\\.){3}[0-9]{1,3}$", var.mgmt_network_ip_secondary))
     error_message = "Management network IP must be a valid IPv4 address."
   }
 }
@@ -263,8 +272,9 @@ variable "mgmt_network_ip_secondary" {
 variable "wan_network_ip_secondary" {
   description = "WAN network IP for Secondary socket"
   type        = string
+  default     = null
   validation {
-    condition     = can(regex("^([0-9]{1,3}\\.){3}[0-9]{1,3}$", var.wan_network_ip_secondary))
+    condition     = var.wan_network_ip_secondary == null || can(regex("^([0-9]{1,3}\\.){3}[0-9]{1,3}$", var.wan_network_ip_secondary))
     error_message = "WAN network IP must be a valid IPv4 address."
   }
 }
@@ -272,8 +282,9 @@ variable "wan_network_ip_secondary" {
 variable "lan_network_ip_secondary" {
   description = "LAN network IP for Secondary socket"
   type        = string
+  default     = null
   validation {
-    condition     = can(regex("^([0-9]{1,3}\\.){3}[0-9]{1,3}$", var.lan_network_ip_secondary))
+    condition     = var.lan_network_ip_secondary == null || can(regex("^([0-9]{1,3}\\.){3}[0-9]{1,3}$", var.lan_network_ip_secondary))
     error_message = "LAN Network IP must be a valid address"
   }
 }
@@ -281,8 +292,9 @@ variable "lan_network_ip_secondary" {
 variable "load_balancer_ip" {
   description = "LAN load balancer IP for the site"
   type        = string
+  default     = null
   validation {
-    condition     = can(regex("^([0-9]{1,3}\\.){3}[0-9]{1,3}$", var.load_balancer_ip))
+    condition     = var.load_balancer_ip == null || can(regex("^([0-9]{1,3}\\.){3}[0-9]{1,3}$", var.load_balancer_ip))
     error_message = "LAN load balancer IP must be a valid IPv4 address."
   }
 }
@@ -304,10 +316,10 @@ variable "lan_firewall_rule_name" {
   description = "Name of the firewall rule (1-63 chars, lowercase letters, numbers, or hyphens)"
   type        = string
   validation {
-    condition     = can(regex("^[a-z][a-z0-9-]{0,61}[a-z0-9]$", var.lan_firewall_rule_name))
+    condition     = var.lan_firewall_rule_name == null || can(regex("^[a-z][a-z0-9-]{0,61}[a-z0-9]$", var.lan_firewall_rule_name))
     error_message = "Firewall rule name must be 1-63 characters, start with a letter, and contain only lowercase letters, numbers, or hyphens."
   }
-  default = "allow-private-ranges-traffic-in-lan-subnet-fw-rule"
+  default = null
 }
 
 variable "create_firewall_rule" {
