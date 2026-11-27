@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Assign both vSocket serial numbers at site creation through the Cato provider.
+- Support Cloud Router HA mode for new deployments and reuse assigned serials when upgrading an existing HA site.
+
 ## 0.0.8 (2026-06-30)
 
 ### Changed

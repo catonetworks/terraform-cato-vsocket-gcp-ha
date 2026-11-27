@@ -6,6 +6,18 @@ Terraform module which creates the GCP resources, VPC, Subnets, network interfac
 
 The GCP HA feature is currently in early availability (EA) access, and requires updates to be made to your Cato Management Application (CMA) tenant to enable until the feature is Generally Available (GA).  Please reach out to [ea@catonetworks.com](mailto:ea@catonetworks.com) to have this feature enabled for your account. 
 
+## Provider-managed HA
+
+For a new deployment, the Cato provider assigns both vSocket serials as part of site creation. The module uses those serials for the two GCP VMs and waits for the primary to boot before it starts the secondary. Set `ha = false` to deploy only the primary VM.
+
+Use a Cato provider release containing [single-step vSocket HA creation](https://github.com/catonetworks/terraform-provider-cato/commit/bc9dd0d). The module excludes 2.0.1 and earlier. Until a compatible provider is published, test with a local build of that commit. Configure credentials on the root Cato provider. The module's `token`, `account_id`, and `baseurl` inputs are retained for callers upgrading from older versions.
+
+Set `configure_cloud_router_bgp = true` for a new HA site using Cloud Router peering. Both registered vSockets require [Socket v27 or later](https://knowledge.catonetworks.com/docs/product-updates-october-19-2026). Use the [NCC wrapper](https://github.com/catonetworks/terraform-cato-vsocket-gcp-ha-ncc-mesh) to configure the Google Cloud and Cato BGP peers.
+
+For an **existing HA site with both serials already assigned**, set `assign_secondary_on_create = false` and keep the existing IP addresses when upgrading. Terraform will then read both serials from the site and omit the create-only settings. Review the migration plan for replacements before applying. Enabling native assignment or changing its inputs, including Cloud Router mode, requires replacing the Cato site. Existing Cloud Router settings can continue to be managed separately on sites that use this upgrade path.
+
+Set both WAN bandwidth inputs to override the Cato defaults for WAN1.
+
 ## NOTE
 - The current API that the Cato provider is calling requires sequential execution. 
 Cato recommends setting the value to 1. Example call: terraform apply -parallelism=1.
@@ -47,8 +59,6 @@ variable "account_id" {}
 # GCP/Cato vsocket HA Module
 module "vsocket-gcp-ha-vnet" {
   source           = "catonetworks/vsocket-gcp-ha/cato"
-  token            = var.token
-  account_id       = var.account_id
   site_name        = "<Cato-Site-Name>"
   site_description = "<Cato-Site-Description>"
   region           = var.region
@@ -116,7 +126,7 @@ Apache 2 Licensed. See [LICENSE](https://github.com/catonetworks/terraform-cato-
 | Name | Version |
 | ---- | ------- |
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.5 |
-| <a name="requirement_cato"></a> [cato](#requirement\_cato) | 0.0.57-1 |
+| <a name="requirement_cato"></a> [cato](#requirement\_cato) | > 2.0.1 |
 | <a name="requirement_google"></a> [google](#requirement\_google) | ~> 7.4 |
 | <a name="requirement_null"></a> [null](#requirement\_null) | ~> 3.2 |
 | <a name="requirement_time"></a> [time](#requirement\_time) | ~> 0.13.1 |
@@ -125,7 +135,7 @@ Apache 2 Licensed. See [LICENSE](https://github.com/catonetworks/terraform-cato-
 
 | Name | Version |
 | ---- | ------- |
-| <a name="provider_cato"></a> [cato](#provider\_cato) | 0.0.57-1 |
+| <a name="provider_cato"></a> [cato](#provider\_cato) | > 2.0.1 |
 | <a name="provider_google"></a> [google](#provider\_google) | ~> 7.4 |
 | <a name="provider_terraform"></a> [terraform](#provider\_terraform) | n/a |
 | <a name="provider_time"></a> [time](#provider\_time) | ~> 0.13.1 |
@@ -171,20 +181,21 @@ No modules.
 | [time_sleep.primary_vsocket_upgrade_delay](https://registry.terraform.io/providers/hashicorp/time/latest/docs/resources/sleep) | resource |
 | [time_sleep.secondary_serial_delay](https://registry.terraform.io/providers/hashicorp/time/latest/docs/resources/sleep) | resource |
 | [time_sleep.site_destroy_delay](https://registry.terraform.io/providers/hashicorp/time/latest/docs/resources/sleep) | resource |
-| [cato_accountSnapshotSite.gcp-site](https://registry.terraform.io/providers/catonetworks/cato/0.0.88/docs/data-sources/accountSnapshotSite) | data source |
-| [cato_accountSnapshotSite.gcp-site-for-secondary](https://registry.terraform.io/providers/catonetworks/cato/0.0.88/docs/data-sources/accountSnapshotSite) | data source |
 | [cato_siteLocation.site_location](https://registry.terraform.io/providers/catonetworks/cato/0.0.88/docs/data-sources/siteLocation) | data source |
 
 ## Inputs
 
 | Name | Description | Type | Default | Required |
 | ---- | ----------- | ---- | ------- | :------: |
+| `ha` | Deploy both vSocket VMs. | `bool` | `true` | no |
+| `assign_secondary_on_create` | Assign both serials at site creation. Set to false for an existing HA site with both serials already assigned. | `bool` | `true` | no |
+| `configure_cloud_router_bgp` | Enable Cato Cloud Router peering mode on a new HA site. | `bool` | `false` | no |
 | <a name="input_account_id"></a> [account\_id](#input\_account\_id) | Account ID used for the Cato Networks integration. | `number` | `null` | no |
 | <a name="input_baseurl"></a> [baseurl](#input\_baseurl) | Base URL for the Cato Networks API. | `string` | `"https://api.catonetworks.com/api/v1/graphql2"` | no |
 | <a name="input_boot_disk_image"></a> [boot\_disk\_image](#input\_boot\_disk\_image) | Boot disk image for vSocket instances | `string` | `"projects/cato-vsocket-production/global/images/gcp-socket-image-v22-0-19207"` | no |
 | <a name="input_boot_disk_size"></a> [boot\_disk\_size](#input\_boot\_disk\_size) | Boot disk size in GB (minimum 10 GB) | `number` | `20` | no |
 | <a name="input_create_firewall_rule"></a> [create\_firewall\_rule](#input\_create\_firewall\_rule) | Whether to create the firewall rule for lan traffic | `bool` | `true` | no |
-| <a name="input_downstream_bandwidth"></a> [downstream\_bandwidth](#input\_downstream\_bandwidth) | Sockets downstream interface WAN Bandwidth in Mbps | `string` | `"null"` | no |
+| <a name="input_downstream_bandwidth"></a> [downstream\_bandwidth](#input\_downstream\_bandwidth) | Sockets downstream interface WAN Bandwidth in Mbps | `string` | `null` | no |
 | <a name="input_enable_static_range_translation"></a> [enable\_static\_range\_translation](#input\_enable\_static\_range\_translation) | Enables the ability to use translated ranges | `string` | `false` | no |
 | <a name="input_ip_mgmt_name"></a> [ip\_mgmt\_name](#input\_ip\_mgmt\_name) | Management Static IP name | `string` | `null` | no |
 | <a name="input_ip_wan_name"></a> [ip\_wan\_name](#input\_ip\_wan\_name) | WAN Static IP name | `string` | `null` | no |
@@ -216,8 +227,8 @@ No modules.
 | <a name="input_subnet_wan_cidr"></a> [subnet\_wan\_cidr](#input\_subnet\_wan\_cidr) | WAN Subnet CIDR | `string` | n/a | yes |
 | <a name="input_subnet_wan_name"></a> [subnet\_wan\_name](#input\_subnet\_wan\_name) | WAN Subnet name | `string` | `null` | no |
 | <a name="input_tags"></a> [tags](#input\_tags) | Tags to be appended to GCP resources | `list(string)` | `[]` | no |
-| <a name="input_token"></a> [token](#input\_token) | API token used to authenticate with the Cato Networks API. | `string` | n/a | yes |
-| <a name="input_upstream_bandwidth"></a> [upstream\_bandwidth](#input\_upstream\_bandwidth) | Sockets upstream interface WAN Bandwidth in Mbps | `string` | `"null"` | no |
+| <a name="input_token"></a> [token](#input\_token) | Legacy input. Configure authentication on the Cato provider. | `string` | `null` | no |
+| <a name="input_upstream_bandwidth"></a> [upstream\_bandwidth](#input\_upstream\_bandwidth) | Sockets upstream interface WAN Bandwidth in Mbps | `string` | `null` | no |
 | <a name="input_vm_name"></a> [vm\_name](#input\_vm\_name) | VM Instance name (must be 1-63 characters, lowercase letters, numbers, or hyphens) | `string` | `null` | no |
 | <a name="input_vpc_lan_name"></a> [vpc\_lan\_name](#input\_vpc\_lan\_name) | LAN VPC name | `string` | `null` | no |
 | <a name="input_vpc_mgmt_name"></a> [vpc\_mgmt\_name](#input\_vpc\_mgmt\_name) | Management VPC name | `string` | `null` | no |
