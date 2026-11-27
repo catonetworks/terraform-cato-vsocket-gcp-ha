@@ -2,8 +2,9 @@
 
 ## Unreleased
 
-- Assign both vSocket serial numbers at site creation through the Cato provider.
+- Require Cato provider 2.1.0 or later in the 2.x series and assign both vSocket serials through the provider at site creation.
 - Support Cloud Router HA mode for new deployments and reuse assigned serials when upgrading an existing HA site.
+- Carry forward the NCC MVP single-vSocket option, GCP region lookup, and LAN VPC outputs. Reject in-place changes between single-vSocket and HA modes.
 
 ## 0.0.8 (2026-06-30)
 

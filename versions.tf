@@ -6,7 +6,7 @@ terraform {
     }
     cato = {
       source  = "catonetworks/cato"
-      version = "> 2.0.1"
+      version = ">= 2.1.0, < 3.0.0"
     }
     time = {
       source  = "hashicorp/time"

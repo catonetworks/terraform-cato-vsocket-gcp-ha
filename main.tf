@@ -113,7 +113,7 @@ resource "cato_license" "license" {
 
 # CMA site
 resource "cato_socket_site" "gcp-site" {
-  depends_on = [time_sleep.site_destroy_delay]
+  depends_on = [time_sleep.site_destroy_delay, terraform_data.deployment_mode, terraform_data.validate_existing_site]
 
   connection_type = "SOCKET_GCP1500"
   description     = var.site_description

@@ -96,7 +96,7 @@ variable "secondary_zone" {
 }
 
 variable "ha" {
-  description = "Deploy both vSocket VMs. Set false to deploy only the primary."
+  description = "Deploy both vSockets. Set false for a new single-vSocket deployment. Keep this input unchanged after deployment."
   type        = bool
   default     = true
 }

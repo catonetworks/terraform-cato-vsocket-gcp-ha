@@ -1,12 +1,20 @@
 mock_provider "google" {}
 mock_provider "time" {}
 
-mock_provider "cato" {}
+mock_provider "cato" {
+  override_during = plan
+}
 
 variables {
-  site_name                 = "test-site"
-  site_description          = "Mock HA site"
-  region                    = "us-east1"
+  site_name        = "test-site"
+  site_description = "Mock HA site"
+  region           = "us-east1"
+  site_location = {
+    city         = "Charleston"
+    country_code = "US"
+    state_code   = "SC"
+    timezone     = "America/New_York"
+  }
   subnet_mgmt_cidr          = "10.1.1.0/24"
   subnet_wan_cidr           = "10.1.2.0/24"
   subnet_lan_cidr           = "10.1.3.0/24"
@@ -61,7 +69,7 @@ run "cloud_router" {
   }
 }
 
-run "existing_assigned_secondary" {
+run "assignment_opt_out_requires_existing_ha" {
   command   = plan
   state_key = "existing-assignment"
 
@@ -69,13 +77,7 @@ run "existing_assigned_secondary" {
     assign_secondary_on_create = false
   }
 
-  assert {
-    condition = (
-      cato_socket_site.gcp-site.secondary_vsocket == null &&
-      length(google_compute_instance.secondary_vsocket) == 1
-    )
-    error_message = "The existing-site opt-out must reuse the assigned secondary serial without configuring HA on the site."
-  }
+  expect_failures = [terraform_data.validate_existing_site]
 }
 
 run "single_socket" {
@@ -109,4 +111,52 @@ run "cloud_router_without_ha" {
   }
 
   expect_failures = [cato_socket_site.gcp-site]
+}
+
+run "record_single_socket_mode" {
+  command   = apply
+  state_key = "single-mode-marker"
+
+  plan_options {
+    target = [terraform_data.deployment_mode]
+  }
+
+  variables {
+    ha = false
+  }
+}
+
+run "reject_single_to_ha" {
+  command   = plan
+  state_key = "single-mode-marker"
+
+  plan_options {
+    target = [terraform_data.deployment_mode]
+  }
+
+  expect_failures = [terraform_data.deployment_mode]
+}
+
+run "record_ha_mode" {
+  command   = apply
+  state_key = "ha-mode-marker"
+
+  plan_options {
+    target = [terraform_data.deployment_mode]
+  }
+}
+
+run "reject_ha_to_single" {
+  command   = plan
+  state_key = "ha-mode-marker"
+
+  plan_options {
+    target = [terraform_data.deployment_mode]
+  }
+
+  variables {
+    ha = false
+  }
+
+  expect_failures = [terraform_data.deployment_mode]
 }

@@ -1,6 +1,8 @@
 # Cato Networks GCP vSocket HA Terraform Module
 
-Terraform module which creates the GCP resources, VPC, Subnets, network interfaces, firewall rules, route-tables, load balancers, etc.  Then creates and configures a Cato Socket Site and brings up two vSockets in HA configuration. 
+Terraform module which creates the GCP resources, VPC, Subnets, network interfaces, firewall rules, route-tables, load balancers, etc. It creates and configures a Cato Socket Site and can deploy either:
+- two vSockets in HA mode (`ha = true`, default), or
+- a single vSocket in non-HA mode (`ha = false`).
 
 ## MODULE RELEASE DETAIL
 
@@ -10,11 +12,15 @@ The GCP HA feature is currently in early availability (EA) access, and requires 
 
 For a new deployment, the Cato provider assigns both vSocket serials as part of site creation. The module uses those serials for the two GCP VMs and waits for the primary to boot before it starts the secondary. Set `ha = false` to deploy only the primary VM.
 
-Use a Cato provider release containing [single-step vSocket HA creation](https://github.com/catonetworks/terraform-provider-cato/commit/bc9dd0d). The module excludes 2.0.1 and earlier. Until a compatible provider is published, test with a local build of that commit. Configure credentials on the root Cato provider. The module's `token`, `account_id`, and `baseurl` inputs are retained for callers upgrading from older versions.
+Use Cato provider `>= 2.1.0, < 3.0.0` with [provider-managed vSocket HA creation](https://github.com/catonetworks/terraform-provider-cato/commit/1a1a1c1). Until a release includes that change, use a local build of the provider feature branch. Configure credentials on the root Cato provider. The module's `token`, `account_id`, and `baseurl` inputs are retained for callers upgrading from older versions.
 
 Set `configure_cloud_router_bgp = true` for a new HA site using Cloud Router peering. Both registered vSockets require [Socket v27 or later](https://knowledge.catonetworks.com/docs/product-updates-october-19-2026). Use the [NCC wrapper](https://github.com/catonetworks/terraform-cato-vsocket-gcp-ha-ncc-mesh) to configure the Google Cloud and Cato BGP peers.
 
-For an **existing HA site with both serials already assigned**, set `assign_secondary_on_create = false` and keep the existing IP addresses when upgrading. Terraform will then read both serials from the site and omit the create-only settings. Review the migration plan for replacements before applying. Enabling native assignment or changing its inputs, including Cloud Router mode, requires replacing the Cato site. Existing Cloud Router settings can continue to be managed separately on sites that use this upgrade path.
+Choose `ha` when creating the site and keep that value on subsequent runs. An in-place change in either direction fails validation. Create a separate deployment to use the other mode.
+
+For an upgrade, keep the existing `site_name` and `ha`. The Cato provider needs permission to list sites and read the account snapshot. The upgrade check needs these reads at plan time. Pass a site name that is known during planning and avoid a module-level `depends_on` on resources with pending changes.
+
+For an **existing MVP HA site with both serials already assigned**, set `assign_secondary_on_create = false` and keep the existing IP addresses when upgrading. For an existing MVP single-vSocket site, keep `ha = false`. In the HA upgrade, Terraform reads both serials from the site and omits the create-only settings. Keep the original setting if the site was already created with provider-managed HA. Review the migration plan for replacements before applying. Enabling native assignment or changing its inputs, including Cloud Router mode, requires replacing the Cato site. Existing Cloud Router settings can continue to be managed separately on sites that use this upgrade path.
 
 Set both WAN bandwidth inputs to override the Cato defaults for WAN1.
 
@@ -62,20 +68,21 @@ module "vsocket-gcp-ha-vnet" {
   site_name        = "<Cato-Site-Name>"
   site_description = "<Cato-Site-Description>"
   region           = var.region
+  ha               = true # default; set false for non-HA
 
   subnet_mgmt_cidr = "10.3.1.0/24"
   subnet_wan_cidr  = "10.3.2.0/24"
   subnet_lan_cidr  = "10.3.3.0/24"
 
   mgmt_network_ip_primary   = "10.3.1.4"
-  mgmt_network_ip_secondary = "10.3.1.5"
+  mgmt_network_ip_secondary = "10.3.1.5" # HA only
 
   wan_network_ip_primary   = "10.3.2.4"
-  wan_network_ip_secondary = "10.3.2.5"
+  wan_network_ip_secondary = "10.3.2.5" # HA only
 
   lan_network_ip_primary   = "10.3.3.4"
-  lan_network_ip_secondary = "10.3.3.5"
-  load_balancer_ip         = "10.3.3.6"
+  lan_network_ip_secondary = "10.3.3.5" # HA only
+  # load_balancer_ip         = "10.3.3.6" # optional; defaults to 6th host in LAN subnet
 
   routed_networks = {
     "Peered-VNET-1" = {
@@ -97,6 +104,9 @@ module "vsocket-gcp-ha-vnet" {
   labels = {}
 }
 ```
+
+For a single-vSocket deployment, set `ha = false` and omit the three secondary IP inputs.
+
 ## Site Location Reference
 
 For more information on site_location syntax, use the [Cato CLI](https://github.com/catonetworks/cato-cli) to lookup values.
@@ -126,7 +136,7 @@ Apache 2 Licensed. See [LICENSE](https://github.com/catonetworks/terraform-cato-
 | Name | Version |
 | ---- | ------- |
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.5 |
-| <a name="requirement_cato"></a> [cato](#requirement\_cato) | > 2.0.1 |
+| <a name="requirement_cato"></a> [cato](#requirement\_cato) | `>= 2.1.0, < 3.0.0` |
 | <a name="requirement_google"></a> [google](#requirement\_google) | ~> 7.4 |
 | <a name="requirement_null"></a> [null](#requirement\_null) | ~> 3.2 |
 | <a name="requirement_time"></a> [time](#requirement\_time) | ~> 0.13.1 |
@@ -135,7 +145,7 @@ Apache 2 Licensed. See [LICENSE](https://github.com/catonetworks/terraform-cato-
 
 | Name | Version |
 | ---- | ------- |
-| <a name="provider_cato"></a> [cato](#provider\_cato) | > 2.0.1 |
+| <a name="provider_cato"></a> [cato](#provider\_cato) | `>= 2.1.0, < 3.0.0` |
 | <a name="provider_google"></a> [google](#provider\_google) | ~> 7.4 |
 | <a name="provider_terraform"></a> [terraform](#provider\_terraform) | n/a |
 | <a name="provider_time"></a> [time](#provider\_time) | ~> 0.13.1 |
@@ -148,10 +158,10 @@ No modules.
 
 | Name | Type |
 | ---- | ---- |
-| [cato_license.license](https://registry.terraform.io/providers/catonetworks/cato/0.0.88/docs/resources/license) | resource |
-| [cato_network_range.routedgcp](https://registry.terraform.io/providers/catonetworks/cato/0.0.88/docs/resources/network_range) | resource |
-| [cato_socket_site.gcp-site](https://registry.terraform.io/providers/catonetworks/cato/0.0.88/docs/resources/socket_site) | resource |
-| [cato_wan_interface.wan](https://registry.terraform.io/providers/catonetworks/cato/0.0.88/docs/resources/wan_interface) | resource |
+| [cato_license.license](https://registry.terraform.io/providers/catonetworks/cato/latest/docs/resources/license) | resource |
+| [cato_network_range.routedgcp](https://registry.terraform.io/providers/catonetworks/cato/latest/docs/resources/network_range) | resource |
+| [cato_socket_site.gcp-site](https://registry.terraform.io/providers/catonetworks/cato/latest/docs/resources/socket_site) | resource |
+| [cato_wan_interface.wan](https://registry.terraform.io/providers/catonetworks/cato/latest/docs/resources/wan_interface) | resource |
 | [google_compute_address.primary_ip_mgmt](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_address) | resource |
 | [google_compute_address.primary_ip_wan](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_address) | resource |
 | [google_compute_address.secondary_ip_mgmt](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_address) | resource |
@@ -177,17 +187,19 @@ No modules.
 | [google_compute_subnetwork.subnet_wan](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_subnetwork) | resource |
 | [google_network_connectivity_policy_based_route.route_lan_to_socket](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/network_connectivity_policy_based_route) | resource |
 | [google_network_connectivity_policy_based_route.route_skip_socket](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/network_connectivity_policy_based_route) | resource |
-| [terraform_data.configure_secondary_gcp_vsocket](https://registry.terraform.io/providers/hashicorp/terraform/latest/docs/resources/data) | resource |
+| [terraform_data.deployment_mode](https://developer.hashicorp.com/terraform/language/resources/terraform-data) | resource |
+| [terraform_data.validate_existing_site](https://developer.hashicorp.com/terraform/language/resources/terraform-data) | resource |
 | [time_sleep.primary_vsocket_upgrade_delay](https://registry.terraform.io/providers/hashicorp/time/latest/docs/resources/sleep) | resource |
-| [time_sleep.secondary_serial_delay](https://registry.terraform.io/providers/hashicorp/time/latest/docs/resources/sleep) | resource |
 | [time_sleep.site_destroy_delay](https://registry.terraform.io/providers/hashicorp/time/latest/docs/resources/sleep) | resource |
-| [cato_siteLocation.site_location](https://registry.terraform.io/providers/catonetworks/cato/0.0.88/docs/data-sources/siteLocation) | data source |
+| [cato_accountSnapshotSite.deployment](https://registry.terraform.io/providers/catonetworks/cato/latest/docs/data-sources/accountSnapshotSite) | data source |
+| [cato_sites.deployment](https://registry.terraform.io/providers/catonetworks/cato/latest/docs/data-sources/sites) | data source |
+| [cato_siteLocation.site_location](https://registry.terraform.io/providers/catonetworks/cato/latest/docs/data-sources/siteLocation) | data source |
 
 ## Inputs
 
 | Name | Description | Type | Default | Required |
 | ---- | ----------- | ---- | ------- | :------: |
-| `ha` | Deploy both vSocket VMs. | `bool` | `true` | no |
+| `ha` | Deploy both vSockets. Set false for a new single-vSocket deployment. Keep this input unchanged after deployment. | `bool` | `true` | no |
 | `assign_secondary_on_create` | Assign both serials at site creation. Set to false for an existing HA site with both serials already assigned. | `bool` | `true` | no |
 | `configure_cloud_router_bgp` | Enable Cato Cloud Router peering mode on a new HA site. | `bool` | `false` | no |
 | <a name="input_account_id"></a> [account\_id](#input\_account\_id) | Account ID used for the Cato Networks integration. | `number` | `null` | no |
@@ -202,7 +214,7 @@ No modules.
 | <a name="input_labels"></a> [labels](#input\_labels) | Labels to be appended to GCP resources | `map(string)` | `{}` | no |
 | <a name="input_lan_firewall_rule_name"></a> [lan\_firewall\_rule\_name](#input\_lan\_firewall\_rule\_name) | Name of the firewall rule (1-63 chars, lowercase letters, numbers, or hyphens) | `string` | `"allow-private-ranges-traffic-in-lan-subnet-fw-rule"` | no |
 | <a name="input_lan_network_ip_primary"></a> [lan\_network\_ip\_primary](#input\_lan\_network\_ip\_primary) | LAN network IP for Primary socket | `string` | n/a | yes |
-| <a name="input_lan_network_ip_secondary"></a> [lan\_network\_ip\_secondary](#input\_lan\_network\_ip\_secondary) | LAN network IP for Secondary socket | `string` | n/a | yes |
+| <a name="input_lan_network_ip_secondary"></a> [lan\_network\_ip\_secondary](#input\_lan\_network\_ip\_secondary) | LAN network IP for Secondary socket | `string` | `null` | HA only |
 | <a name="input_license_bw"></a> [license\_bw](#input\_license\_bw) | The license bandwidth number for the cato site, specifying bandwidth ONLY applies for pooled licenses.  For a standard site license that is not pooled, leave this value null. Must be a number greater than 0 and an increment of 10. | `string` | `null` | no |
 | <a name="input_license_id"></a> [license\_id](#input\_license\_id) | The license ID for the Cato vSocket of license type CATO\_SITE, CATO\_SSE\_SITE, CATO\_PB, CATO\_PB\_SSE.  Example License ID value: 'abcde123-abcd-1234-abcd-abcde1234567'.  Note that licenses are for commercial accounts, and not supported for trial accounts. | `string` | `null` | no |
 | <a name="input_load_balancer_ip"></a> [load\_balancer\_ip](#input\_load\_balancer\_ip) | LAN load balancer IP for the site | `string` | n/a | yes |
@@ -234,7 +246,7 @@ No modules.
 | <a name="input_vpc_mgmt_name"></a> [vpc\_mgmt\_name](#input\_vpc\_mgmt\_name) | Management VPC name | `string` | `null` | no |
 | <a name="input_vpc_wan_name"></a> [vpc\_wan\_name](#input\_vpc\_wan\_name) | WAN VPC name | `string` | `null` | no |
 | <a name="input_wan_network_ip_primary"></a> [wan\_network\_ip\_primary](#input\_wan\_network\_ip\_primary) | WAN network IP for Primary socket | `string` | n/a | yes |
-| <a name="input_wan_network_ip_secondary"></a> [wan\_network\_ip\_secondary](#input\_wan\_network\_ip\_secondary) | WAN network IP for Secondary socket | `string` | n/a | yes |
+| <a name="input_wan_network_ip_secondary"></a> [wan\_network\_ip\_secondary](#input\_wan\_network\_ip\_secondary) | WAN network IP for Secondary socket | `string` | `null` | HA only |
 
 ## Outputs
 
@@ -263,11 +275,14 @@ No modules.
 | <a name="output_secondary_vm_wan_public_ip"></a> [secondary\_vm\_wan\_public\_ip](#output\_secondary\_vm\_wan\_public\_ip) | WAN public IP of the secondary vSocket VM if assigned |
 | <a name="output_secondary_wan_static_ip"></a> [secondary\_wan\_static\_ip](#output\_secondary\_wan\_static\_ip) | Secondary WAN static IP address |
 | <a name="output_site_id"></a> [site\_id](#output\_site\_id) | ID of the created Cato site |
+| `site_location` | Resolved Cato site location. |
 | <a name="output_site_location_debug"></a> [site\_location\_debug](#output\_site\_location\_debug) | Debug information for site location lookup |
 | <a name="output_site_name"></a> [site\_name](#output\_site\_name) | Name of the created Cato site |
 | <a name="output_subnet_lan_name"></a> [subnet\_lan\_name](#output\_subnet\_lan\_name) | Name of the LAN subnet |
 | <a name="output_subnet_mgmt_name"></a> [subnet\_mgmt\_name](#output\_subnet\_mgmt\_name) | Name of the management subnet |
 | <a name="output_subnet_wan_name"></a> [subnet\_wan\_name](#output\_subnet\_wan\_name) | Name of the WAN subnet |
+| `vpc_lan_id` | ID of the LAN VPC |
+| `vpc_lan_self_link` | Self-link of the LAN VPC |
 | <a name="output_vpc_lan_name"></a> [vpc\_lan\_name](#output\_vpc\_lan\_name) | Name of the LAN VPC |
 | <a name="output_vpc_mgmt_name"></a> [vpc\_mgmt\_name](#output\_vpc\_mgmt\_name) | Name of the management VPC |
 | <a name="output_vpc_wan_name"></a> [vpc\_wan\_name](#output\_vpc\_wan\_name) | Name of the WAN VPC |
